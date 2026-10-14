@@ -16,7 +16,8 @@ const state = {
     companies: [],
     categories: {},
     activeModalCategory: "all",
-    selectedAutocompleteIndex: -1
+    selectedAutocompleteIndex: -1,
+    currentChatId: Date.now().toString()
 };
 
 // DOM Elements
@@ -45,6 +46,12 @@ const companiesGridContainer = document.getElementById("companies-grid-container
 const chatboxAutocomplete = document.getElementById("chatbox-autocomplete");
 const welcomeCategoriesBar = document.getElementById("welcome-categories-bar");
 const welcomeChipsContainer = document.getElementById("welcome-chips-container");
+const libraryBtn = document.getElementById("library-btn");
+const libraryModal = document.getElementById("library-modal");
+const libraryCloseBtn = document.getElementById("library-close-btn");
+const libraryClearAllBtn = document.getElementById("library-clear-all-btn");
+const librarySearchInput = document.getElementById("library-search-input");
+const libraryListContainer = document.getElementById("library-list-container");
 
 // Initialization
 document.addEventListener("DOMContentLoaded", () => {
@@ -55,6 +62,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setupAutocompleteHandlers();
     setupCompaniesModalHandlers();
     setupWelcomeCategoryFilter();
+    setupLibraryHandlers();
+    updateLibraryBadge();
 });
 
 // Setup Event Handlers
@@ -90,12 +99,14 @@ function setupEventHandlers() {
 
     // New Chat button & Home Logo
     const resetChat = () => {
+        stopSpeaking();
         messageList.innerHTML = "";
         welcomeScreen.style.display = "flex";
         userInput.value = "";
         clearAttachment();
         state.activeSymbol = "TCS.NS";
         state.activeTimeframe = "1y";
+        state.currentChatId = Date.now().toString();
     };
     newChatBtn.addEventListener("click", resetChat);
     navHomeBtn.addEventListener("click", resetChat);
@@ -211,10 +222,11 @@ function toggleVoiceRecognition() {
     }
 }
 
-// Text-to-Speech: Read Aloud
-function speakText(text) {
+// Text-to-Speech: Read Aloud with Stop Button Support
+function speakText(text, listenBtn, stopBtn) {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
+    resetAllAudioButtons();
 
     // Clean markdown symbols for natural speech
     const cleanSpeech = text
@@ -225,7 +237,34 @@ function speakText(text) {
     const utterance = new SpeechSynthesisUtterance(cleanSpeech);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
+
+    if (listenBtn && stopBtn) {
+        listenBtn.style.display = "none";
+        stopBtn.style.display = "inline-flex";
+    }
+
+    const reset = () => {
+        if (listenBtn && stopBtn) {
+            listenBtn.style.display = "inline-flex";
+            stopBtn.style.display = "none";
+        }
+    };
+
+    utterance.onend = reset;
+    utterance.onerror = reset;
     window.speechSynthesis.speak(utterance);
+}
+
+function stopSpeaking() {
+    if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+    }
+    resetAllAudioButtons();
+}
+
+function resetAllAudioButtons() {
+    document.querySelectorAll(".audio-listen-btn").forEach(b => b.style.display = "inline-flex");
+    document.querySelectorAll(".audio-stop-btn").forEach(b => b.style.display = "none");
 }
 
 // Submit User Query
@@ -270,6 +309,7 @@ async function submitUserQuery() {
         const data = await res.json();
         removeLoadingMessage(loadingId);
         renderAssistantResponse(data);
+        saveToLibrary(displayQuery, data);
 
     } catch (err) {
         removeLoadingMessage(loadingId);
@@ -353,14 +393,26 @@ function renderAssistantResponse(data) {
             <span class="status-dot ${statusClass}"></span>
             <span>${escapeHtml(statusText)}</span>
         </div>
-        <button type="button" class="audio-read-btn" title="Listen to response">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-            <span>Listen</span>
-        </button>
+        <div class="audio-controls-group">
+            <button type="button" class="audio-read-btn audio-listen-btn" title="Listen to response">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                <span>Listen</span>
+            </button>
+            <button type="button" class="audio-read-btn audio-stop-btn" style="display: none;" title="Stop reading aloud">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+                <span>Stop</span>
+            </button>
+        </div>
     `;
 
-    metaBar.querySelector(".audio-read-btn").addEventListener("click", () => {
-        speakText(text_response);
+    const listenBtn = metaBar.querySelector(".audio-listen-btn");
+    const stopBtn = metaBar.querySelector(".audio-stop-btn");
+
+    listenBtn.addEventListener("click", () => {
+        speakText(text_response, listenBtn, stopBtn);
+    });
+    stopBtn.addEventListener("click", () => {
+        stopSpeaking();
     });
     contentDiv.appendChild(metaBar);
 
@@ -505,7 +557,8 @@ function renderAssistantResponse(data) {
     row.appendChild(contentDiv);
     messageList.appendChild(row);
 
-    scrollToBottom();
+    // Keep view at start of assistant response so output doesn't scroll all the way down
+    row.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // Render Plotly Financial Candlestick & Forecast Chart
@@ -1108,4 +1161,192 @@ function renderWelcomeCategoryChips(category) {
         submitUserQuery();
     });
     welcomeChipsContainer.appendChild(mktChip);
+}
+
+// =========================================================================
+// Library System: LocalStorage Past Conversations
+// =========================================================================
+const LIBRARY_STORAGE_KEY = "stockmind_conversations_v1";
+
+function getLibraryData() {
+    try {
+        return JSON.parse(localStorage.getItem(LIBRARY_STORAGE_KEY) || "[]");
+    } catch {
+        return [];
+    }
+}
+
+function saveToLibrary(userQuery, assistantData) {
+    try {
+        let library = getLibraryData();
+        let conv = library.find(c => c.id === state.currentChatId);
+        if (!conv) {
+            conv = {
+                id: state.currentChatId,
+                title: userQuery.substring(0, 36) + (userQuery.length > 36 ? "…" : ""),
+                symbol: state.activeSymbol,
+                timestamp: Date.now(),
+                dateStr: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+                turns: []
+            };
+            library.unshift(conv);
+        }
+        conv.turns.push({ query: userQuery, response: assistantData });
+        conv.timestamp = Date.now();
+        conv.symbol = state.activeSymbol;
+        if (library.length > 60) library.pop();
+        localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(library));
+        updateLibraryBadge();
+    } catch (e) {
+        console.warn("Error saving conversation:", e);
+    }
+}
+
+function updateLibraryBadge() {
+    const library = getLibraryData();
+    let badge = document.getElementById("library-count-badge");
+    if (!badge && libraryBtn) {
+        badge = document.createElement("span");
+        badge.id = "library-count-badge";
+        badge.className = "nav-badge";
+        libraryBtn.appendChild(badge);
+    }
+    if (badge) {
+        if (library.length > 0) {
+            badge.textContent = library.length > 99 ? "99+" : library.length;
+            badge.style.display = "inline-flex";
+        } else {
+            badge.style.display = "none";
+        }
+    }
+}
+
+function setupLibraryHandlers() {
+    if (!libraryBtn || !libraryModal) return;
+
+    libraryBtn.addEventListener("click", () => {
+        renderLibraryList();
+        libraryModal.style.display = "flex";
+        if (librarySearchInput) librarySearchInput.value = "";
+    });
+
+    if (libraryCloseBtn) {
+        libraryCloseBtn.addEventListener("click", () => {
+            libraryModal.style.display = "none";
+        });
+    }
+
+    libraryModal.addEventListener("click", (e) => {
+        if (e.target === libraryModal) {
+            libraryModal.style.display = "none";
+        }
+    });
+
+    if (libraryClearAllBtn) {
+        libraryClearAllBtn.addEventListener("click", () => {
+            if (confirm("Clear all saved conversations from the library?")) {
+                localStorage.removeItem(LIBRARY_STORAGE_KEY);
+                renderLibraryList();
+                updateLibraryBadge();
+            }
+        });
+    }
+
+    if (librarySearchInput) {
+        librarySearchInput.addEventListener("input", (e) => {
+            renderLibraryList(e.target.value.trim().toLowerCase());
+        });
+    }
+}
+
+function renderLibraryList(filterText = "") {
+    if (!libraryListContainer) return;
+    const library = getLibraryData();
+    libraryListContainer.innerHTML = "";
+
+    const filtered = filterText 
+        ? library.filter(c => c.title.toLowerCase().includes(filterText) || (c.symbol && c.symbol.toLowerCase().includes(filterText)))
+        : library;
+
+    if (filtered.length === 0) {
+        libraryListContainer.innerHTML = `
+            <div class="library-empty-state">
+                <div class="empty-icon">📂</div>
+                <h4>${filterText ? "No matching conversations found" : "No saved conversations yet"}</h4>
+                <p>Your stock analyses and queries will be automatically saved here as you chat.</p>
+            </div>
+        `;
+        return;
+    }
+
+    filtered.forEach(conv => {
+        const item = document.createElement("div");
+        item.className = "library-item-card";
+        const turnsCount = conv.turns ? conv.turns.length : 1;
+        item.innerHTML = `
+            <div class="library-item-main">
+                <div class="library-item-header">
+                    <span class="library-item-sym">${escapeHtml(conv.symbol || "STK")}</span>
+                    <span class="library-item-date">${escapeHtml(conv.dateStr || "Recently")}</span>
+                    <span class="library-item-turns">${turnsCount} ${turnsCount === 1 ? 'query' : 'queries'}</span>
+                </div>
+                <div class="library-item-title">${escapeHtml(conv.title)}</div>
+            </div>
+            <div class="library-item-actions">
+                <button type="button" class="library-resume-btn" title="Open this conversation">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <span>Open</span>
+                </button>
+                <button type="button" class="library-del-btn" title="Delete conversation">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </div>
+        `;
+
+        item.querySelector(".library-resume-btn").addEventListener("click", () => {
+            loadConversationFromLibrary(conv.id);
+        });
+
+        item.querySelector(".library-del-btn").addEventListener("click", (e) => {
+            e.stopPropagation();
+            deleteFromLibrary(conv.id);
+        });
+
+        item.addEventListener("click", (e) => {
+            if (!e.target.closest(".library-del-btn")) {
+                loadConversationFromLibrary(conv.id);
+            }
+        });
+
+        libraryListContainer.appendChild(item);
+    });
+}
+
+function loadConversationFromLibrary(id) {
+    const library = getLibraryData();
+    const conv = library.find(c => c.id === id);
+    if (!conv) return;
+
+    stopSpeaking();
+    messageList.innerHTML = "";
+    welcomeScreen.style.display = "none";
+    state.activeSymbol = conv.symbol || "TCS.NS";
+    state.currentChatId = conv.id;
+
+    if (conv.turns && conv.turns.length > 0) {
+        conv.turns.forEach(turn => {
+            appendUserMessage(turn.query);
+            renderAssistantResponse(turn.response);
+        });
+    }
+
+    if (libraryModal) libraryModal.style.display = "none";
+}
+
+function deleteFromLibrary(id) {
+    let library = getLibraryData();
+    library = library.filter(c => c.id !== id);
+    localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(library));
+    renderLibraryList(librarySearchInput ? librarySearchInput.value.trim().toLowerCase() : "");
+    updateLibraryBadge();
 }
