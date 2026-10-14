@@ -292,7 +292,7 @@ function appendLoadingMessage(id) {
     row.className = "message-wrapper assistant-message-row";
     row.id = id;
     row.innerHTML = `
-        <div class="assistant-avatar">S</div>
+        <div class="assistant-avatar"><img src="/static/logo.png" alt="StockMind AI" class="avatar-logo-img"></div>
         <div class="assistant-content" style="padding: 18px 22px; border-left: 3px solid var(--purple-400);">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <div class="loading-dots"><span></span><span></span><span></span></div>
@@ -501,7 +501,7 @@ function renderAssistantResponse(data) {
         contentDiv.appendChild(followup);
     }
 
-    row.innerHTML = `<div class="assistant-avatar">S</div>`;
+    row.innerHTML = `<div class="assistant-avatar"><img src="/static/logo.png" alt="StockMind AI" class="avatar-logo-img"></div>`;
     row.appendChild(contentDiv);
     messageList.appendChild(row);
 

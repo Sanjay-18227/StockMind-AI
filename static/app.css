@@ -113,29 +113,29 @@ body {
 .logo-circle {
     width: 38px;
     height: 38px;
-    background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-700) 100%);
-    color: #FFFFFF;
-    font-weight: 800;
-    font-size: 18px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-full);
-    box-shadow: var(--shadow-soft-md);
+    border-radius: 12px;
+    box-shadow: var(--shadow-soft-sm);
     transition: var(--transition-bounce);
     position: relative;
+    overflow: hidden;
+    padding: 2px;
 }
-.logo-circle::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius-full);
-    background: linear-gradient(135deg, rgba(255,255,255,0.28) 0%, transparent 60%);
-    pointer-events: none;
+.logo-circle .brand-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+    display: block;
 }
 .logo-circle:hover {
     transform: translateY(-2px) scale(1.06);
     box-shadow: var(--shadow-soft-lg);
+    border-color: var(--purple-300);
 }
 
 .header-title {
@@ -287,13 +287,11 @@ body {
 }
 
 .welcome-logo {
-    width: 72px;
-    height: 72px;
-    background: linear-gradient(135deg, var(--purple-400) 0%, var(--purple-700) 100%);
-    color: #FFFFFF;
-    font-size: 36px;
-    font-weight: 800;
-    border-radius: var(--radius-full);
+    width: 86px;
+    height: 86px;
+    background: #FFFFFF;
+    border: 1.5px solid var(--border-subtle);
+    border-radius: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -301,14 +299,15 @@ body {
     box-shadow: var(--shadow-soft-lg);
     position: relative;
     animation: floatLogo 4s ease-in-out infinite;
+    padding: 4px;
 }
-.welcome-logo::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius-full);
-    background: linear-gradient(135deg, rgba(255,255,255,0.32) 0%, transparent 55%);
-    pointer-events: none;
+.welcome-logo .welcome-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 20px;
+    display: block;
+    filter: drop-shadow(0 4px 12px rgba(109, 40, 217, 0.12));
 }
 .welcome-logo::before {
     content: '';
@@ -433,11 +432,12 @@ body {
 .assistant-avatar {
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-700) 100%);
+    background: #FFFFFF;
+    border: 1.5px solid var(--border-subtle);
     color: #FFFFFF;
     font-size: 14px;
     font-weight: 800;
-    border-radius: var(--radius-full);
+    border-radius: 11px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -445,14 +445,15 @@ body {
     margin-top: 4px;
     box-shadow: var(--shadow-soft-sm);
     position: relative;
+    overflow: hidden;
+    padding: 1.5px;
 }
-.assistant-avatar::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius-full);
-    background: linear-gradient(135deg, rgba(255,255,255,0.28) 0%, transparent 55%);
-    pointer-events: none;
+.assistant-avatar .avatar-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 9px;
+    display: block;
 }
 
 .assistant-content {
