@@ -1203,22 +1203,9 @@ function saveToLibrary(userQuery, assistantData) {
 }
 
 function updateLibraryBadge() {
-    const library = getLibraryData();
-    let badge = document.getElementById("library-count-badge");
-    if (!badge && libraryBtn) {
-        badge = document.createElement("span");
-        badge.id = "library-count-badge";
-        badge.className = "nav-badge";
-        libraryBtn.appendChild(badge);
-    }
-    if (badge) {
-        if (library.length > 0) {
-            badge.textContent = library.length > 99 ? "99+" : library.length;
-            badge.style.display = "inline-flex";
-        } else {
-            badge.style.display = "none";
-        }
-    }
+    // User requested: in library don't show the numbers
+    const badge = document.getElementById("library-count-badge");
+    if (badge) badge.remove();
 }
 
 function setupLibraryHandlers() {
@@ -1288,7 +1275,6 @@ function renderLibraryList(filterText = "") {
                 <div class="library-item-header">
                     <span class="library-item-sym">${escapeHtml(conv.symbol || "STK")}</span>
                     <span class="library-item-date">${escapeHtml(conv.dateStr || "Recently")}</span>
-                    <span class="library-item-turns">${turnsCount} ${turnsCount === 1 ? 'query' : 'queries'}</span>
                 </div>
                 <div class="library-item-title">${escapeHtml(conv.title)}</div>
             </div>
