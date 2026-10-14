@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMind AI — Financial Intelligence & Market Predictions</title>
+    <meta name="description" content="Conversational AI Stock Market Analysis & Prediction Engine with institutional-grade technical analysis, statistics, and machine learning forecasts.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/app.css">
+    <!-- Plotly.js for Financial Charts -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-circle" id="nav-home-btn" title="StockMind AI">
+                    <span>S</span>
+                </div>
+                <div class="header-title">
+                    <span class="brand-name">StockMind <span class="brand-badge">AI</span></span>
+                    <span class="brand-sub">Quantitative Financial Assistant</span>
+                </div>
+            </div>
+
+            <!-- Global Market Ticker Bar -->
+            <div class="header-ticker-strip" id="header-ticker-strip">
+                <div class="ticker-item placeholder-ticker">Loading global market pulse...</div>
+            </div>
+
+            <div class="header-right">
+                <button class="icon-btn" id="companies-modal-btn" title="Browse 650+ Companies Directory">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg>
+                    <span>Companies</span>
+                </button>
+                <button class="icon-btn" id="market-overview-btn" title="View Today's Market Pulse">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                    <span>Markets</span>
+                </button>
+                <button class="icon-btn" id="new-chat-btn" title="Start New Conversation">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>New Query</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Chat Conversation View -->
+            <div class="chat-viewport" id="chat-viewport">
+                <!-- Welcome View (Shown initially) -->
+                <div class="welcome-screen" id="welcome-screen">
+                    <div class="welcome-logo">
+                        <span>S</span>
+                    </div>
+                    <h1 class="welcome-heading">How can I help you?</h1>
+                    <p class="welcome-desc">
+                        Analyze stocks, understand markets, compare companies, or just ask.
+                    </p>
+
+                    <!-- Sector & Category Company Filter Bar -->
+                    <div class="welcome-categories-bar" id="welcome-categories-bar">
+                        <span class="cat-pill active" data-cat="all">🔥 All Popular</span>
+                        <span class="cat-pill" data-cat="NIFTY 50">🇮🇳 NIFTY 50</span>
+                        <span class="cat-pill" data-cat="Banking & Finance">🏦 Banking & Finance</span>
+                        <span class="cat-pill" data-cat="Tech & IT">💻 Tech & IT</span>
+                        <span class="cat-pill" data-cat="Auto & EV">🚗 Auto & EV</span>
+                        <span class="cat-pill" data-cat="Energy & Green">⚡ Energy & Green</span>
+                        <span class="cat-pill" data-cat="Defence & Rail">🛡️ Defence & Rail</span>
+                        <span class="cat-pill" data-cat="New-Age & Consumer">📱 New-Age & Consumer</span>
+                        <span class="cat-pill" data-cat="Pharma & Health">💊 Pharma & Health</span>
+                        <span class="cat-pill" data-cat="FMCG & Retail">🛒 FMCG & Retail</span>
+                        <span class="cat-pill" data-cat="Metals & Mining">⛏️ Metals & Mining</span>
+                        <span class="cat-pill" data-cat="Real Estate">🏢 Real Estate</span>
+                        <span class="cat-pill" data-cat="Global Mega-Caps">🌐 US Mega-Caps</span>
+                        <span class="cat-pill" data-cat="Indices & Commodities">📈 Indices & Crypto</span>
+                    </div>
+
+                    <!-- Quick Suggestion Chips (Dynamically populated with company chips) -->
+                    <div class="suggestion-chips" id="welcome-chips-container">
+                        <button class="chip" data-query="Analyze TCS.">
+                            <span class="chip-icon">💻</span> TCS <span class="chip-badge">IT</span>
+                        </button>
+                        <button class="chip" data-query="Analyze Reliance.">
+                            <span class="chip-icon">🛢️</span> Reliance <span class="chip-badge">Energy</span>
+                        </button>
+                        <button class="chip" data-query="Analyze MRF.">
+                            <span class="chip-icon">🛞</span> MRF <span class="chip-badge">Auto</span>
+                        </button>
+                        <button class="chip" data-query="Analyze Infosys.">
+                            <span class="chip-icon">💻</span> Infosys <span class="chip-badge">IT</span>
+                        </button>
+                        <button class="chip" data-query="Analyze HDFC Bank.">
+                            <span class="chip-icon">🏦</span> HDFC Bank <span class="chip-badge">Bank</span>
+                        </button>
+                        <button class="chip" data-query="Analyze Tata Motors.">
+                            <span class="chip-icon">🚗</span> Tata Motors <span class="chip-badge">EV</span>
+                        </button>
+                        <button class="chip" data-query="Analyze Zomato.">
+                            <span class="chip-icon">🍕</span> Zomato <span class="chip-badge">Platform</span>
+                        </button>
+                        <button class="chip" data-query="Analyze Suzlon.">
+                            <span class="chip-icon">💨</span> Suzlon <span class="chip-badge">Green</span>
+                        </button>
+                        <button class="chip" data-query="Analyze HAL.">
+                            <span class="chip-icon">✈️</span> HAL <span class="chip-badge">Defence</span>
+                        </button>
+                        <button class="chip" data-query="Analyze Nvidia.">
+                            <span class="chip-icon">🤖</span> Nvidia <span class="chip-badge">AI GPU</span>
+                        </button>
+                        <button class="chip" data-query="Analyze Apple.">
+                            <span class="chip-icon">🍏</span> Apple <span class="chip-badge">US</span>
+                        </button>
+                        <button class="chip" data-query="Analyze Tesla.">
+                            <span class="chip-icon">⚡</span> Tesla <span class="chip-badge">EV</span>
+                        </button>
+                        <button class="chip" data-query="Compare TCS and Infosys.">
+                            <span class="chip-icon">🔄</span> Compare TCS &amp; Infosys
+                        </button>
+                        <button class="chip" data-query="How is the stock market today?">
+                            <span class="chip-icon">🌐</span> How is the market today?
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Message Stream -->
+                <div class="message-list" id="message-list"></div>
+            </div>
+
+            <!-- Sticky Bottom Chat Bar -->
+            <div class="chat-input-wrapper">
+                <!-- Autocomplete Dropdown List -->
+                <div class="chatbox-autocomplete" id="chatbox-autocomplete" style="display: none;"></div>
+
+                <form class="chat-form" id="chat-form">
+                    <div class="input-card">
+                        <!-- Attachment preview pill if file selected -->
+                        <div class="attachment-preview" id="attachment-preview" style="display: none;">
+                            <span class="attachment-name" id="attachment-name"></span>
+                            <button type="button" class="remove-attachment-btn" id="remove-attachment-btn">×</button>
+                        </div>
+
+                        <div class="input-row">
+                            <!-- Hidden File Input -->
+                            <input type="file" id="file-input" accept="image/*,.pdf,.csv" style="display: none;">
+
+                            <!-- Companies Catalog Browser Icon -->
+                            <button type="button" class="tool-btn" id="browse-companies-btn" title="Browse 650+ Companies Catalog">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                            </button>
+
+                            <!-- Minimal Attachment Icon -->
+                            <button type="button" class="tool-btn" id="attach-btn" title="Attach image or chart for analysis">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                            </button>
+
+                            <!-- Minimal Voice Input Icon -->
+                            <button type="button" class="tool-btn" id="voice-btn" title="Speak question (English, Tamil, Tanglish)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                            </button>
+
+                            <!-- Main Conversational Text Input with Autocomplete -->
+                            <textarea 
+                                id="user-input" 
+                                class="main-input" 
+                                placeholder="Type any company (e.g. 'MRF', 'TCS', 'Zomato', 'Nvidia', 'Reliance epdi iruku?')..."
+                                rows="1"
+                                autofocus
+                            ></textarea>
+
+                            <!-- Send Button -->
+                            <button type="submit" class="send-btn" id="send-btn" title="Send Query">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div class="input-disclaimer">
+                    StockMind AI provides quantitative educational market analysis. Predictions represent statistical probability models, not financial guarantees.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Companies Directory Modal -->
+    <div class="companies-modal-backdrop" id="companies-modal" style="display: none;">
+        <div class="companies-modal-dialog">
+            <div class="companies-modal-header">
+                <div class="companies-header-title">
+                    <div class="companies-icon-badge">🏢</div>
+                    <div>
+                        <h3>Company &amp; Stock Directory</h3>
+                        <p>Search and select from 650+ Indian (NSE/BSE) and Global companies</p>
+                    </div>
+                </div>
+                <button class="close-modal-btn" id="close-companies-modal-btn">×</button>
+            </div>
+            
+            <div class="companies-search-bar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" id="company-modal-search-input" placeholder="Search by company name, ticker symbol, or sector (e.g. 'Premier Energies', 'MRF', 'Tata', 'Zomato', 'Nvidia')...">
+            </div>
+
+            <div class="companies-filter-tabs" id="modal-category-tabs">
+                <button class="modal-tab-btn active" data-cat="all">All</button>
+                <button class="modal-tab-btn" data-cat="NIFTY 50">NIFTY 50</button>
+                <button class="modal-tab-btn" data-cat="Banking & Finance">Banking &amp; Finance</button>
+                <button class="modal-tab-btn" data-cat="Tech & IT">Tech &amp; IT</button>
+                <button class="modal-tab-btn" data-cat="Auto & EV">Auto &amp; EV</button>
+                <button class="modal-tab-btn" data-cat="Energy & Green">Energy &amp; Green</button>
+                <button class="modal-tab-btn" data-cat="Defence & Rail">Defence &amp; Rail</button>
+                <button class="modal-tab-btn" data-cat="New-Age & Consumer">New-Age Tech</button>
+                <button class="modal-tab-btn" data-cat="Pharma & Health">Pharma &amp; Health</button>
+                <button class="modal-tab-btn" data-cat="FMCG & Retail">FMCG &amp; Retail</button>
+                <button class="modal-tab-btn" data-cat="Metals & Mining">Metals &amp; Mining</button>
+                <button class="modal-tab-btn" data-cat="Real Estate">Real Estate</button>
+                <button class="modal-tab-btn" data-cat="Cement & Building Materials">Cement &amp; Materials</button>
+                <button class="modal-tab-btn" data-cat="Chemicals & Industrials">Chemicals</button>
+                <button class="modal-tab-btn" data-cat="Industrial Engineering">Engineering &amp; Capital Goods</button>
+                <button class="modal-tab-btn" data-cat="Consumer & Industrials">Consumer Goods</button>
+                <button class="modal-tab-btn" data-cat="Infrastructure">Infrastructure</button>
+                <button class="modal-tab-btn" data-cat="Hotels & Tourism">Hotels &amp; Tourism</button>
+                <button class="modal-tab-btn" data-cat="Media & Entertainment">Media</button>
+                <button class="modal-tab-btn" data-cat="Global Mega-Caps">US &amp; Global Tech</button>
+                <button class="modal-tab-btn" data-cat="Indices & Commodities">Indices &amp; Crypto</button>
+            </div>
+
+            <div class="companies-grid" id="companies-grid-container">
+                <div class="companies-loading">Loading company catalog...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Chart Modal / Drawer for Fullscreen Analysis -->
+    <div class="chart-modal-backdrop" id="chart-modal" style="display: none;">
+        <div class="chart-modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <h3 id="modal-stock-name">Stock Analysis Chart</h3>
+                    <div class="modal-timeframe-selector" id="modal-timeframes">
+                        <button class="tf-btn" data-tf="1d">1D</button>
+                        <button class="tf-btn" data-tf="5d">5D</button>
+                        <button class="tf-btn" data-tf="1mo">1M</button>
+                        <button class="tf-btn" data-tf="3mo">3M</button>
+                        <button class="tf-btn" data-tf="6mo">6M</button>
+                        <button class="tf-btn active" data-tf="1y">1Y</button>
+                        <button class="tf-btn" data-tf="5y">5Y</button>
+                        <button class="tf-btn" data-tf="max">MAX</button>
+                    </div>
+                </div>
+                <div class="modal-controls">
+                    <button class="icon-btn-secondary" id="chart-overlay-toggle" title="Toggle Overlays">Overlays</button>
+                    <button class="close-modal-btn" id="close-modal-btn">×</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div id="modal-plotly-chart" class="fullscreen-chart-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
