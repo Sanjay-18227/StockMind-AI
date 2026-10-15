@@ -82,6 +82,21 @@ function setupEventHandlers() {
         }
     });
 
+    // Window resize handler for mobile and desktop responsive charts
+    window.addEventListener("resize", () => {
+        if (!window.Plotly) return;
+        Object.keys(state.chartInstances).forEach(chartId => {
+            const el = document.getElementById(chartId);
+            if (el) {
+                try {
+                    window.Plotly.Plots.resize(el);
+                } catch (e) {
+                    // Ignore transient layout resize error
+                }
+            }
+        });
+    });
+
     // Suggestion chips
     document.querySelectorAll(".chip").forEach(chip => {
         chip.addEventListener("click", () => {
@@ -949,7 +964,6 @@ function renderCompaniesGrid(companiesList) {
             <div>
                 <div class="cc-top">
                     <div class="cc-identity">
-                        <span class="cc-emoji">${comp.emoji || '📈'}</span>
                         <span class="cc-name">${escapeHtml(comp.name)}</span>
                     </div>
                     <span class="cc-ticker-badge">${escapeHtml(comp.ticker)}</span>
@@ -1054,7 +1068,6 @@ function renderAutocomplete(matches) {
         item.className = "autocomplete-item";
         item.innerHTML = `
             <div class="ac-left">
-                <span class="ac-emoji">${comp.emoji || '📈'}</span>
                 <div class="ac-names">
                     <span class="ac-title">${escapeHtml(comp.name)}</span>
                     <span class="ac-sub">${escapeHtml(comp.sector)}</span>
@@ -1142,7 +1155,7 @@ function renderWelcomeCategoryChips(category) {
         chip.className = "chip";
         chip.setAttribute("data-query", `Analyze ${c.name}.`);
         chip.innerHTML = `
-            <span class="chip-icon">${c.emoji || '📈'}</span> ${escapeHtml(c.name)} <span class="chip-badge">${c.ticker}</span>
+            ${escapeHtml(c.name)} <span class="chip-badge">${c.ticker}</span>
         `;
         chip.addEventListener("click", () => {
             userInput.value = `Analyze ${c.name}.`;
@@ -1155,7 +1168,7 @@ function renderWelcomeCategoryChips(category) {
     const mktChip = document.createElement("button");
     mktChip.className = "chip";
     mktChip.setAttribute("data-query", "How is the stock market today?");
-    mktChip.innerHTML = `<span class="chip-icon">🌐</span> How is the market today?`;
+    mktChip.innerHTML = `How is the market today?`;
     mktChip.addEventListener("click", () => {
         userInput.value = "How is the stock market today?";
         submitUserQuery();
