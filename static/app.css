@@ -794,7 +794,7 @@ body {
     left: 0;
     right: 0;
     padding: 14px 24px 22px;
-    background: linear-gradient(180deg, rgba(250,245,255,0) 0%, rgba(250,245,255,0.96) 28%, #FAF5FF 100%);
+    background: linear-gradient(180deg, rgba(248,250,252,0) 0%, rgba(248,250,252,0.96) 28%, #F8FAFC 100%);
     backdrop-filter: blur(12px);
     z-index: 10;
 }
@@ -1114,9 +1114,9 @@ body {
     .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
     .header-ticker-strip { display: none; }
     .welcome-heading { font-size: 28px; }
-    .chat-viewport { padding: 16px 12px 150px; }
+    .chat-viewport { padding: 16px 12px 165px; }
     .app-header { padding: 0 16px; }
-    .chat-input-wrapper { padding: 12px 16px 18px; }
+    .chat-input-wrapper { padding: 10px 14px calc(26px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* ==========================================================================
@@ -1985,7 +1985,7 @@ body {
 
     /* Main Viewport */
     .chat-viewport {
-        padding: 12px 10px 145px;
+        padding: 12px 10px 165px;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -2124,13 +2124,16 @@ body {
         padding-bottom: 4px;
     }
 
-    /* Sticky Bottom Chat Input Bar */
+    /* Sticky Bottom Chat Input Bar - raised slightly up for comfortable mobile thumb reach */
     .chat-input-wrapper {
-        padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+        padding: 10px 12px calc(28px + env(safe-area-inset-bottom, 0px));
+        background: linear-gradient(180deg, rgba(248,250,252,0) 0%, rgba(248,250,252,0.96) 24%, #F8FAFC 100%);
     }
     .input-card {
-        padding: 6px 8px;
-        border-radius: 20px;
+        padding: 7px 10px;
+        border-radius: 22px;
+        box-shadow: 0 4px 16px rgba(0, 114, 245, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08);
+        margin-bottom: 2px;
     }
     .input-row {
         gap: 4px;
@@ -2276,5 +2279,11 @@ body {
     .suggestion-chips .chip {
         font-size: 11.5px;
         padding: 6px 10px;
+    }
+    .chat-input-wrapper {
+        padding: 8px 10px calc(32px + env(safe-area-inset-bottom, 0px));
+    }
+    .chat-viewport {
+        padding-bottom: 175px;
     }
 }
