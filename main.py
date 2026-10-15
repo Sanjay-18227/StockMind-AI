@@ -262,6 +262,15 @@ async def process_chat(req: ChatRequest):
             status_code=500,
             detail=f"Unable to process query for '{primary_sym}'. Error: {str(e)}"
         )
+ 
+# Mount Gradio quantitative terminal at /gradio
+try:
+    import gradio as gr
+    from app import build_app
+    gradio_blocks = build_app()
+    app = gr.mount_gradio_app(app, gradio_blocks, path="/gradio")
+except Exception as e:
+    print(f"[Warning] Could not mount Gradio terminal app: {e}")
 
 
 if __name__ == "__main__":
