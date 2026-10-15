@@ -258,6 +258,90 @@ body {
 }
 .icon-btn:active { transform: translateY(0px); }
 
+/* Header Navigation Action Buttons (Back, New Chat, Library) */
+.header-nav-btn {
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    gap: 6px;
+    color: var(--purple-700);
+    border: 1.5px solid var(--purple-100);
+    background: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(109,40,217,0.06);
+    flex-shrink: 0;
+}
+.header-nav-btn:hover {
+    background: var(--purple-50);
+    border-color: var(--purple-300);
+    transform: translateY(-1.5px);
+}
+
+/* Mobile Top Live Ticker Bar (Sensex, Nifty 50, Bank Nifty, etc. on Top) */
+.mobile-top-ticker-bar {
+    display: none;
+    width: 100%;
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 7px 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    z-index: 18;
+    box-shadow: 0 2px 6px rgba(109,40,217,0.04);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.mobile-top-ticker-bar::-webkit-scrollbar {
+    display: none;
+}
+.mobile-ticker-track {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+}
+.mobile-ticker-track .ticker-item {
+    background: var(--purple-50);
+    border: 1px solid var(--border-subtle);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.mobile-ticker-track .ticker-item:hover,
+.mobile-ticker-track .ticker-item:active {
+    background: var(--purple-100);
+    transform: scale(0.98);
+}
+.mobile-ticker-track .ticker-item .sym {
+    font-weight: 700;
+    color: var(--purple-900);
+}
+.mobile-ticker-track .ticker-item .val {
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.mobile-ticker-track .ticker-item .chg {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+.mobile-ticker-track .ticker-item .chg.up {
+    color: #059669;
+    background: rgba(16,185,129,0.12);
+}
+.mobile-ticker-track .ticker-item .chg.down {
+    color: #DC2626;
+    background: rgba(239,68,68,0.12);
+}
+
 /* Main Content Area */
 .main-content {
     flex: 1;
@@ -867,9 +951,114 @@ body {
 }
 
 .tool-btn.listening {
-    color: var(--accent-red);
-    background: var(--accent-red-bg);
-    animation: pulseRec 1.2s infinite;
+    color: #FFFFFF !important;
+    background: linear-gradient(135deg, var(--purple-600), var(--purple-800)) !important;
+    border-color: var(--purple-600) !important;
+    animation: voicePulse 1.4s infinite ease-in-out;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.35), 0 4px 12px rgba(139, 92, 246, 0.4) !important;
+}
+
+@keyframes voicePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+/* Mini Voice Wavelength on Voice Button */
+.voice-wavelength {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5px;
+    height: 18px;
+}
+.voice-wavelength .wave-bar {
+    width: 2.5px;
+    background: #FFFFFF;
+    border-radius: 3px;
+    animation: soundWave 1.1s infinite ease-in-out alternate;
+}
+.wb-1 { height: 6px; animation-delay: 0.1s; }
+.wb-2 { height: 14px; animation-delay: 0.3s; }
+.wb-3 { height: 18px; animation-delay: 0.15s; }
+.wb-4 { height: 11px; animation-delay: 0.4s; }
+.wb-5 { height: 7px; animation-delay: 0.2s; }
+
+/* Voice Listening Live Banner Overlay across all formats (Desktop, Tablet, Mobile) */
+.voice-live-banner {
+    padding: 6px 10px 8px;
+    margin-bottom: 6px;
+    animation: fadeInSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.voice-live-track {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(168, 85, 247, 0.08));
+    border: 1.5px solid var(--purple-300);
+    padding: 7px 14px;
+    border-radius: var(--radius-full);
+    backdrop-filter: blur(8px);
+}
+.voice-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #EF4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
+    animation: dotPulse 1.2s infinite ease-in-out;
+    flex-shrink: 0;
+}
+@keyframes dotPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.55; }
+}
+.voice-live-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--purple-800);
+    white-space: nowrap;
+}
+.voice-wavelength-moving {
+    display: flex;
+    align-items: center;
+    gap: 3.5px;
+    height: 24px;
+    flex: 1;
+    justify-content: center;
+}
+.live-wave-bar {
+    width: 3.5px;
+    background: linear-gradient(180deg, var(--purple-500), var(--purple-700));
+    border-radius: 4px;
+    animation: soundWave 0.85s infinite ease-in-out alternate;
+}
+.lw-1 { height: 7px; animation-delay: 0.05s; }
+.lw-2 { height: 16px; animation-delay: 0.25s; }
+.lw-3 { height: 22px; animation-delay: 0.15s; }
+.lw-4 { height: 11px; animation-delay: 0.4s; }
+.lw-5 { height: 20px; animation-delay: 0.1s; }
+.lw-6 { height: 14px; animation-delay: 0.3s; }
+.lw-7 { height: 24px; animation-delay: 0.2s; }
+.lw-8 { height: 8px; animation-delay: 0.35s; }
+
+@keyframes soundWave {
+    0% { height: 4px; opacity: 0.45; }
+    50% { height: 22px; opacity: 1; }
+    100% { height: 8px; opacity: 0.7; }
+}
+.voice-banner-stop {
+    background: var(--purple-600);
+    color: #FFFFFF;
+    border: none;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.voice-banner-stop:hover {
+    background: var(--purple-700);
 }
 
 .send-btn {
@@ -1955,18 +2144,38 @@ body {
         height: 58px;
     }
     .logo-circle {
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        flex-shrink: 0;
+    }
+    /* In mobile view remove the company name and any text next to/below logo */
+    .header-title,
+    #header-brand-title,
+    .brand-name,
+    .brand-sub {
+        display: none !important;
+    }
+    .header-left {
+        gap: 6px;
+    }
+    .header-nav-btn {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        padding: 0;
+        justify-content: center;
         border-radius: 10px;
     }
-    .brand-name {
-        font-size: 15px;
-    }
-    .brand-sub {
-        display: none;
+    .header-nav-btn span {
+        display: none !important;
     }
     .header-ticker-strip {
         display: none;
+    }
+    /* In mobile view add Sensex, Nifty... on top */
+    .mobile-top-ticker-bar {
+        display: flex;
     }
     .header-right {
         gap: 6px;
@@ -2103,14 +2312,68 @@ body {
     .card-subtext {
         font-size: 10.5px;
     }
+    /* In mobile view give graph in slightly increased size & enable pinch-to-zoom */
+    .plotly-chart-box,
+    .embedded-chart-section .plotly-chart-box,
     .chart-container,
     .plotly-graph-div,
     .js-plotly-plot {
-        min-height: 280px;
+        min-height: 395px !important;
+        height: 395px !important;
         width: 100% !important;
         max-width: 100% !important;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        touch-action: pan-y pinch-zoom;
+    }
+    .embedded-chart-section {
+        padding: 12px 8px;
+        position: relative;
+    }
+    .chart-zoom-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--purple-700);
+        background: var(--purple-50);
+        border: 1px solid var(--purple-200);
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        margin-top: 4px;
+    }
+    /* Maximized Chart State via 2-finger touch */
+    .plotly-chart-box.chart-pinch-maximized {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-height: 100vh !important;
+        z-index: 99999 !important;
+        background: #FFFFFF !important;
+        padding: 16px 12px !important;
+        box-sizing: border-box !important;
+    }
+    .chart-pinch-close-btn {
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        z-index: 100000;
+        background: rgba(15, 23, 42, 0.85);
+        color: #FFFFFF;
+        border: none;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .chart-section-header {
         flex-direction: column;

@@ -20,24 +20,36 @@
         <!-- Top Navigation Bar -->
         <header class="app-header">
             <div class="header-left">
+                <!-- 1. Back button -->
+                <button class="icon-btn header-nav-btn" id="nav-back-btn" title="Back to Previous Screen / Home">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m15 18-6-6 6-6"/></svg>
+                    <span>Back</span>
+                </button>
+                <!-- 2. New Chat button -->
+                <button class="icon-btn header-nav-btn" id="new-chat-btn" title="Start New Chat" aria-label="New Chat">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>New Chat</span>
+                </button>
+                <!-- 3. Library button -->
+                <button class="icon-btn header-nav-btn" id="library-btn" title="Conversations Library">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/><circle cx="8" cy="4" r="2"/></svg>
+                    <span>Library</span>
+                </button>
+                <!-- 4. Logo & Company Emblem -->
                 <div class="logo-circle" id="nav-home-btn" title="StockMind AI">
                     <img src="/static/logo.png" alt="StockMind AI Logo" class="brand-logo-img">
                 </div>
-                <div class="header-title">
+                <div class="header-title" id="header-brand-title">
                     <span class="brand-name">StockMind <span class="brand-badge">AI</span></span>
                 </div>
             </div>
 
-            <!-- Global Market Ticker Bar -->
-            <div class="header-ticker-strip" id="header-ticker-strip">
-                <div class="ticker-item placeholder-ticker">Loading global market pulse...</div>
+            <!-- Global Market Ticker Bar (Sensex, Nifty 50, Bank Nifty, etc.) -->
+            <div class="header-ticker-strip desktop-ticker-strip" id="header-ticker-strip">
+                <div class="ticker-item placeholder-ticker">Loading SENSEX, NIFTY 50 live pulse...</div>
             </div>
 
             <div class="header-right">
-                <button class="icon-btn" id="library-btn" title="Conversations Library">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/><circle cx="8" cy="4" r="2"/></svg>
-                    <span>Library</span>
-                </button>
                 <button class="icon-btn" id="companies-modal-btn" title="Browse 650+ Companies Directory">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg>
                     <span>Companies</span>
@@ -46,12 +58,15 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
                     <span>Markets</span>
                 </button>
-                <button class="icon-btn icon-only-btn" id="new-chat-btn" title="New Chat" aria-label="New Chat">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
-                    <span class="touch-tooltip">New Chat</span>
-                </button>
             </div>
         </header>
+
+        <!-- Top Live Ticker Bar on Mobile (Sensex, Nifty 50, Bank Nifty, S&P 500 on Top) -->
+        <div class="mobile-top-ticker-bar" id="mobile-top-ticker-bar">
+            <div class="mobile-ticker-track" id="mobile-ticker-track">
+                <div class="ticker-item placeholder-ticker">Loading SENSEX, NIFTY 50 live pulse...</div>
+            </div>
+        </div>
 
         <!-- Main Workspace -->
         <main class="main-content">
@@ -132,6 +147,9 @@
                         <button class="chip" data-query="Give me stock market tips.">
                             💡 Stock Market Tips
                         </button>
+                        <button class="chip" data-query="Apple stock in indian rupees">
+                            💵 Apple in Rupees (INR)
+                        </button>
                     </div>
                 </div>
 
@@ -152,6 +170,25 @@
                             <button type="button" class="remove-attachment-btn" id="remove-attachment-btn">×</button>
                         </div>
 
+                        <!-- Voice listening waveform banner overlay -->
+                        <div class="voice-live-banner" id="voice-live-banner" style="display: none;">
+                            <div class="voice-live-track">
+                                <span class="voice-dot"></span>
+                                <span class="voice-live-label">Listening... Speak now</span>
+                                <div class="voice-wavelength-moving" id="voice-wavelength-moving">
+                                    <span class="live-wave-bar lw-1"></span>
+                                    <span class="live-wave-bar lw-2"></span>
+                                    <span class="live-wave-bar lw-3"></span>
+                                    <span class="live-wave-bar lw-4"></span>
+                                    <span class="live-wave-bar lw-5"></span>
+                                    <span class="live-wave-bar lw-6"></span>
+                                    <span class="live-wave-bar lw-7"></span>
+                                    <span class="live-wave-bar lw-8"></span>
+                                </div>
+                                <button type="button" class="voice-banner-stop" id="voice-banner-stop" title="Stop Listening">Done</button>
+                            </div>
+                        </div>
+
                         <div class="input-row">
                             <!-- Hidden File Input -->
                             <input type="file" id="file-input" accept="image/*,.pdf,.csv" style="display: none;">
@@ -166,9 +203,16 @@
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                             </button>
 
-                            <!-- Minimal Voice Input Icon -->
+                            <!-- Minimal Voice Input Icon with animated wavelength indicator -->
                             <button type="button" class="tool-btn" id="voice-btn" title="Speak question (English, Tamil, Tanglish)">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                                <svg class="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                                <div class="voice-wavelength" id="voice-wavelength" style="display: none;">
+                                    <span class="wave-bar wb-1"></span>
+                                    <span class="wave-bar wb-2"></span>
+                                    <span class="wave-bar wb-3"></span>
+                                    <span class="wave-bar wb-4"></span>
+                                    <span class="wave-bar wb-5"></span>
+                                </div>
                             </button>
 
                             <!-- Main Conversational Text Input with Autocomplete -->

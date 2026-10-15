@@ -21,7 +21,8 @@ from ai.assistant import (
     format_comparison_response,
     generate_comparison_analysis,
     format_conversational_response,
-    format_stock_tips_response
+    format_stock_tips_response,
+    format_currency_conversion_response
 )
 from data.global_market_data import get_market_overview
 from data.market_data import resolve_ticker
@@ -188,6 +189,23 @@ async def process_chat(req: ChatRequest):
                     "intent": intent,
                     "language": lang
                 })
+
+    # 4b. Handle Currency Conversion Intent (USD to INR / foreign stocks in Rupees)
+    if intent == "CURRENCY_CONVERSION":
+        try:
+            resolved = resolve_ticker(primary_sym)
+            analysis = run_complete_stock_analysis(resolved, period=tf)
+            text_response = format_currency_conversion_response(analysis, lang=lang)
+            return JSONResponse(content={
+                "text_response": text_response,
+                "stock_analysis": analysis,
+                "comparison": None,
+                "market_overview": None,
+                "intent": intent,
+                "language": lang
+            })
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Currency conversion analysis failed: {str(e)}")
 
     # 5. Handle Market Overview Intent
     if intent == "MARKET_OVERVIEW":

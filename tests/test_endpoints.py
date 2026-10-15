@@ -111,6 +111,28 @@ async def run_tests():
     print(f"    Total Market Categories: {len(cat_data['categories'])}")
     print("    PASSED")
 
+    # 10. Stock Market Tips Query
+    print("\n[10] Testing Stock Market Tips ('Give me stock market tips') ...")
+    chat_req = ChatRequest(query="Give me stock market tips", active_symbol="TCS.NS")
+    res = await process_chat(chat_req)
+    assert res.status_code == 200
+    tips_data = json.loads(res.body.decode("utf-8"))
+    assert tips_data["intent"] == "STOCK_TIPS"
+    assert "Rule" in tips_data["text_response"] or "Tip" in tips_data["text_response"]
+    print("    Tips response length:", len(tips_data["text_response"]))
+    print("    PASSED")
+
+    # 11. Foreign Currency to INR Conversion Query
+    print("\n[11] Testing Foreign Stock to INR Conversion ('Apple stock in indian rupees') ...")
+    chat_req = ChatRequest(query="Apple stock in indian rupees", active_symbol="AAPL")
+    res = await process_chat(chat_req)
+    assert res.status_code == 200
+    conv_data = json.loads(res.body.decode("utf-8"))
+    assert conv_data["intent"] == "CURRENCY_CONVERSION"
+    assert "INR" in conv_data["text_response"] or "USD" in conv_data["text_response"]
+    print("    Currency conversion response status: 200 OK")
+    print("    PASSED")
+
     print("\n" + "=" * 60)
     print("ALL INTEGRATION TESTS PASSED SUCCESSFULLY! 🚀")
     print("=" * 60)

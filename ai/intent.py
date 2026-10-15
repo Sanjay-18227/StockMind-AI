@@ -18,6 +18,7 @@ INTENTS = [
     "TIMEFRAME_HISTORY",
     "STOCK_ANALYSIS",
     "STOCK_TIPS",
+    "CURRENCY_CONVERSION",
     "GENERAL_CONVERSATION"
 ]
 
@@ -177,6 +178,42 @@ def classify_intent(text: str, active_symbol: Optional[str] = None) -> Dict[str,
             "primary_symbol": primary_symbol or "TCS.NS",
             "secondary_symbol": None,
             "timeframe": "1y",
+            "raw_query": cleaned
+        }
+
+    # 5b. Check for Foreign Currency to Indian Rupees Conversion
+    inr_patterns = [
+        "dollar to rupee", "dollar to rupees", "dollar to inr", "dollar to indian rupee", "dollar to indian rupees",
+        "dollars to rupees", "dollars to inr", "usd to inr", "in rupee", "in rupees", "in inr", "in indian rupee",
+        "in indian rupees", "into rupee", "into rupees", "into inr", "into indian rupees", "convert to rupee",
+        "convert to rupees", "convert to inr", "convert to indian rupees", "rupee value", "rupees value",
+        "price in inr", "price in rupees", "rate in inr", "rate in rupees", "inr price", "change into indian rupees",
+        "change to indian rupees", "convert dollar", "dollar to indian",
+        "ரூபாயில்", "ரூபாய் மதிப்பு", "ரூபாய்க்கு", "ரூபாய்", "ரூபாய்ல",
+        "रुपये में", "रुपए में", "रुपये", "रुपए", "रूपए में", "रूपये", "रुपया",
+        "రూపాయల్లో", "రూపాయలు", "రూపాయి", "రూపాయిల్లో",
+        "ರೂಪಾಯಿಗಳಲ್ಲಿ", "ರೂಪಾಯಿ", "രൂപയിൽ", "രൂപ", "টাকায়", "টাকা", "રૂપિયામાં", "રૂપિયા"
+    ]
+    is_inr_requested = False
+    for p in inr_patterns:
+        if not p.isascii() or " " in p:
+            if p in lower:
+                is_inr_requested = True
+                break
+        else:
+            if re.search(r"\b" + re.escape(p) + r"\b", lower):
+                is_inr_requested = True
+                break
+
+    if is_inr_requested and (any(w in lower for w in ["dollar", "usd", "convert", "change", "price", "rate", "value", "மதிப்பு", "விலை", "भाव", "दर"]) or extracted_symbols):
+        target_sym = primary_symbol or (extracted_symbols[0] if extracted_symbols else (active_symbol or "AAPL"))
+        return {
+            "intent": "CURRENCY_CONVERSION",
+            "primary_symbol": target_sym,
+            "secondary_symbol": None,
+            "symbols": extracted_symbols,
+            "timeframe": "1y",
+            "convert_to_inr": True,
             "raw_query": cleaned
         }
 

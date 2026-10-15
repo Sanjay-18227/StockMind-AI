@@ -27,6 +27,11 @@ const chatForm = document.getElementById("chat-form");
 const userInput = document.getElementById("user-input");
 const sendBtn = document.getElementById("send-btn");
 const voiceBtn = document.getElementById("voice-btn");
+const voiceWavelength = document.getElementById("voice-wavelength");
+const voiceLiveBanner = document.getElementById("voice-live-banner");
+const voiceBannerStop = document.getElementById("voice-banner-stop");
+const navBackBtn = document.getElementById("nav-back-btn");
+const mobileTickerTrack = document.getElementById("mobile-ticker-track");
 const attachBtn = document.getElementById("attach-btn");
 const fileInput = document.getElementById("file-input");
 const attachmentPreview = document.getElementById("attachment-preview");
@@ -64,6 +69,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setupWelcomeCategoryFilter();
     setupLibraryHandlers();
     updateLibraryBadge();
+
+    // Live market details polling (updates Sensex, Nifty 50, Bank Nifty every 30s)
+    setInterval(fetchMarketTickerStrip, 30000);
 });
 
 // Setup Event Handlers
@@ -126,6 +134,34 @@ function setupEventHandlers() {
     newChatBtn.addEventListener("click", resetChat);
     navHomeBtn.addEventListener("click", resetChat);
 
+    // Header Back button handler (closes active modals, maximized charts, or resets back to welcome)
+    if (navBackBtn) {
+        navBackBtn.addEventListener("click", () => {
+            if (companiesModal && companiesModal.style.display !== "none") {
+                companiesModal.style.display = "none";
+                return;
+            }
+            if (libraryModal && libraryModal.style.display !== "none") {
+                libraryModal.style.display = "none";
+                return;
+            }
+            const maximizedChart = document.querySelector(".plotly-chart-box.chart-pinch-maximized");
+            if (maximizedChart) {
+                restorePinchChart(maximizedChart);
+                return;
+            }
+            if (messageList && messageList.children.length > 0) {
+                resetChat();
+                return;
+            }
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        });
+    }
+
     // File Attachment handlers
     attachBtn.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", (e) => {
@@ -157,37 +193,52 @@ function clearAttachment() {
     attachmentName.textContent = "";
 }
 
-// Fetch and Render Global Market Ticker Strip
+// Fetch and Render Global Market Ticker Strip (Sensex, Nifty 50, etc. on Desktop & Mobile)
 async function fetchMarketTickerStrip() {
     try {
         const res = await fetch("/api/market-overview");
         if (!res.ok) return;
         const data = await res.json();
         
-        headerTickerStrip.innerHTML = "";
-        if (data.indices && data.indices.length > 0) {
-            data.indices.forEach(idx => {
-                const item = document.createElement("div");
-                item.className = "ticker-item";
-                const isUp = idx.change >= 0;
-                item.innerHTML = `
-                    <span class="sym">${idx.name}</span>
-                    <span class="val">${idx.currency_symbol}${idx.current_price.toLocaleString()}</span>
-                    <span class="chg ${isUp ? 'up' : 'down'}">${idx.change_formatted}</span>
-                `;
-                item.addEventListener("click", () => {
-                    userInput.value = `Analyze ${idx.name}`;
-                    submitUserQuery();
-                });
-                headerTickerStrip.appendChild(item);
+        const createTickerEl = (idx) => {
+            const item = document.createElement("div");
+            item.className = "ticker-item";
+            const isUp = idx.change >= 0;
+            item.innerHTML = `
+                <span class="sym">${idx.name}</span>
+                <span class="val">${idx.currency_symbol}${idx.current_price.toLocaleString()}</span>
+                <span class="chg ${isUp ? 'up' : 'down'}">${idx.change_formatted}</span>
+            `;
+            item.addEventListener("click", () => {
+                userInput.value = `Analyze ${idx.name}`;
+                submitUserQuery();
             });
+            return item;
+        };
+
+        if (headerTickerStrip) {
+            headerTickerStrip.innerHTML = "";
+            if (data.indices && data.indices.length > 0) {
+                data.indices.forEach(idx => headerTickerStrip.appendChild(createTickerEl(idx)));
+            }
+        }
+        if (mobileTickerTrack) {
+            mobileTickerTrack.innerHTML = "";
+            if (data.indices && data.indices.length > 0) {
+                data.indices.forEach(idx => mobileTickerTrack.appendChild(createTickerEl(idx)));
+            }
         }
     } catch (err) {
         console.error("Failed to load market ticker strip:", err);
     }
 }
 
-// Web Speech API: Voice-to-Text
+// Web Speech API & Animated Moving Voice Wavelength Visualizer
+let voiceAudioContext = null;
+let voiceAnalyser = null;
+let voiceMicrophoneStream = null;
+let voiceAnimFrame = null;
+
 function initVoiceRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -199,41 +250,131 @@ function initVoiceRecognition() {
         state.speechRecognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
             userInput.value = transcript;
-            state.isRecording = false;
-            voiceBtn.classList.remove("listening");
+            stopVoiceListening();
             submitUserQuery();
         };
 
         state.speechRecognition.onerror = (e) => {
             console.warn("Speech recognition error:", e);
-            state.isRecording = false;
-            voiceBtn.classList.remove("listening");
+            stopVoiceListening();
         };
 
         state.speechRecognition.onend = () => {
-            state.isRecording = false;
-            voiceBtn.classList.remove("listening");
+            stopVoiceListening();
         };
     } else {
-        voiceBtn.style.opacity = "0.4";
-        voiceBtn.title = "Voice recognition not supported in this browser";
+        if (voiceBtn) {
+            voiceBtn.style.opacity = "0.75";
+            voiceBtn.title = "Click to speak with StockMind voice assistant";
+        }
+    }
+
+    if (voiceBannerStop) {
+        voiceBannerStop.addEventListener("click", () => {
+            stopVoiceListening();
+            if (userInput.value.trim().length > 0) {
+                submitUserQuery();
+            }
+        });
     }
 }
 
-function toggleVoiceRecognition() {
-    if (!state.speechRecognition) return;
-    if (state.isRecording) {
-        state.speechRecognition.stop();
-        state.isRecording = false;
-        voiceBtn.classList.remove("listening");
-    } else {
+function startVoiceListening() {
+    state.isRecording = true;
+    if (voiceBtn) {
+        voiceBtn.classList.add("listening");
+        const micIcon = voiceBtn.querySelector(".mic-icon");
+        if (micIcon) micIcon.style.display = "none";
+        if (voiceWavelength) voiceWavelength.style.display = "flex";
+    }
+    if (voiceLiveBanner) {
+        voiceLiveBanner.style.display = "block";
+    }
+
+    // Attempt Web Audio API Analyser for real-time moving wavelength
+    try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                .then(stream => {
+                    voiceMicrophoneStream = stream;
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        voiceAudioContext = new AudioContext();
+                        voiceAnalyser = voiceAudioContext.createAnalyser();
+                        voiceAnalyser.fftSize = 64;
+                        const source = voiceAudioContext.createMediaStreamSource(stream);
+                        source.connect(voiceAnalyser);
+                        animateLiveWaveBars();
+                    }
+                })
+                .catch(err => {
+                    // Graceful fallback to CSS animated moving wavelength
+                });
+        }
+    } catch (e) {
+        // Fallback to CSS keyframes animation
+    }
+
+    if (state.speechRecognition) {
         try {
             state.speechRecognition.start();
-            state.isRecording = true;
-            voiceBtn.classList.add("listening");
         } catch (err) {
             console.error("Speech start error:", err);
         }
+    }
+}
+
+function stopVoiceListening() {
+    state.isRecording = false;
+    if (state.speechRecognition) {
+        try { state.speechRecognition.stop(); } catch(e) {}
+    }
+    if (voiceBtn) {
+        voiceBtn.classList.remove("listening");
+        const micIcon = voiceBtn.querySelector(".mic-icon");
+        if (micIcon) micIcon.style.display = "block";
+        if (voiceWavelength) voiceWavelength.style.display = "none";
+    }
+    if (voiceLiveBanner) {
+        voiceLiveBanner.style.display = "none";
+    }
+    if (voiceMicrophoneStream) {
+        try {
+            voiceMicrophoneStream.getTracks().forEach(t => t.stop());
+        } catch(e) {}
+        voiceMicrophoneStream = null;
+    }
+    if (voiceAudioContext) {
+        try { voiceAudioContext.close(); } catch(e) {}
+        voiceAudioContext = null;
+    }
+    if (voiceAnimFrame) {
+        cancelAnimationFrame(voiceAnimFrame);
+        voiceAnimFrame = null;
+    }
+}
+
+function animateLiveWaveBars() {
+    if (!state.isRecording || !voiceAnalyser) return;
+    const dataArray = new Uint8Array(voiceAnalyser.frequencyBinCount);
+    voiceAnalyser.getByteFrequencyData(dataArray);
+
+    const bars = document.querySelectorAll(".live-wave-bar");
+    if (bars && bars.length > 0) {
+        bars.forEach((bar, idx) => {
+            const val = dataArray[idx * 2] || 20;
+            const barHeight = Math.max(5, Math.min(26, Math.floor(val / 8.5)));
+            bar.style.height = barHeight + "px";
+        });
+    }
+    voiceAnimFrame = requestAnimationFrame(animateLiveWaveBars);
+}
+
+function toggleVoiceRecognition() {
+    if (state.isRecording) {
+        stopVoiceListening();
+    } else {
+        startVoiceListening();
     }
 }
 
@@ -505,6 +646,7 @@ function renderAssistantResponse(data) {
                     </div>
                 </div>
                 <div id="${chartId}" class="plotly-chart-box"></div>
+                <div class="chart-zoom-badge">✌️ 2-Finger Pinch to Zoom &amp; Maximize / Minimize</div>
             </div>
         `;
         contentDiv.appendChild(chartSection);
@@ -534,7 +676,8 @@ function renderAssistantResponse(data) {
                         <span class="chart-pill">${comparison.stock_a.symbol} vs ${comparison.stock_b.symbol}</span>
                     </div>
                 </div>
-                <div id="${compChartId}" class="plotly-chart-box" style="min-height: 320px;"></div>
+                <div id="${compChartId}" class="plotly-chart-box" style="min-height: 380px;"></div>
+                <div class="chart-zoom-badge">✌️ 2-Finger Pinch to Zoom &amp; Maximize / Minimize</div>
             </div>
         `;
         contentDiv.appendChild(compSection);
@@ -706,11 +849,13 @@ function renderPlotlyChart(elementId, payload, quote) {
         });
     }
 
+    const isMobile = window.innerWidth <= 768;
     const layout = {
         dragmode: 'zoom',
         showlegend: true,
-        legend: { orientation: 'h', y: 1.08, x: 0.01, font: { family: 'Inter', size: 11 } },
-        margin: { l: 45, r: 20, t: 30, b: 30 },
+        height: isMobile ? 390 : undefined,
+        legend: { orientation: 'h', y: 1.08, x: 0.01, font: { family: 'Inter', size: isMobile ? 9.5 : 11 } },
+        margin: isMobile ? { l: 38, r: 15, t: 25, b: 25 } : { l: 45, r: 20, t: 30, b: 30 },
         plot_bgcolor: '#FFFFFF',
         paper_bgcolor: '#FFFFFF',
         xaxis: {
@@ -718,13 +863,13 @@ function renderPlotlyChart(elementId, payload, quote) {
             type: 'date',
             gridcolor: '#F1F5F9',
             linecolor: '#E2E8F0',
-            tickfont: { family: 'Inter', size: 10, color: '#64748B' }
+            tickfont: { family: 'Inter', size: isMobile ? 9 : 10, color: '#64748B' }
         },
         yaxis: {
             domain: [0.22, 1.0],
             gridcolor: '#F1F5F9',
             linecolor: '#E2E8F0',
-            tickfont: { family: 'JetBrains Mono', size: 11, color: '#64748B' },
+            tickfont: { family: 'JetBrains Mono', size: isMobile ? 10 : 11, color: '#64748B' },
             tickprefix: quote.currency_symbol || ''
         },
         yaxis2: {
@@ -736,6 +881,8 @@ function renderPlotlyChart(elementId, payload, quote) {
 
     const config = {
         responsive: true,
+        scrollZoom: true,
+        doubleClick: 'reset',
         displayModeBar: true,
         displaylogo: false,
         modeBarButtonsToRemove: ['lasso2d', 'select2d']
@@ -743,6 +890,106 @@ function renderPlotlyChart(elementId, payload, quote) {
 
     Plotly.newPlot(el, traces, layout, config);
     state.chartInstances[elementId] = { payload, quote, layout };
+    setupPinchZoomOnChart(el, elementId);
+}
+
+// Two-Finger Touch Pinch-to-Zoom Maximize & Minimize Engine
+function setupPinchZoomOnChart(chartEl, chartId) {
+    if (!chartEl) return;
+
+    let touchStartDist = 0;
+    let isPinching = false;
+
+    chartEl.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 2) {
+            isPinching = true;
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            touchStartDist = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
+        }
+    }, { passive: true });
+
+    chartEl.addEventListener("touchmove", (e) => {
+        if (isPinching && e.touches.length === 2) {
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            const currentDist = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
+            const delta = currentDist - touchStartDist;
+
+            // Pinch outward (> 40px spread): Maximize
+            if (delta > 40 && !chartEl.classList.contains("chart-pinch-maximized")) {
+                maximizePinchChart(chartEl);
+                touchStartDist = currentDist;
+            }
+            // Pinch inward (< -40px): Minimize
+            else if (delta < -40 && chartEl.classList.contains("chart-pinch-maximized")) {
+                restorePinchChart(chartEl);
+                touchStartDist = currentDist;
+            }
+        }
+    }, { passive: true });
+
+    chartEl.addEventListener("touchend", (e) => {
+        if (e.touches.length < 2) {
+            isPinching = false;
+        }
+    }, { passive: true });
+
+    // Double-tap support on mobile to toggle maximize/minimize
+    let lastTap = 0;
+    chartEl.addEventListener("touchend", (e) => {
+        if (e.touches.length > 0) return;
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 50) {
+            if (chartEl.classList.contains("chart-pinch-maximized")) {
+                restorePinchChart(chartEl);
+            } else {
+                maximizePinchChart(chartEl);
+            }
+        }
+        lastTap = currentTime;
+    });
+}
+
+function maximizePinchChart(chartEl) {
+    if (!chartEl) return;
+    chartEl.classList.add("chart-pinch-maximized");
+    document.body.style.overflow = "hidden";
+
+    let closeBtn = document.getElementById("chart-pinch-close-btn");
+    if (!closeBtn) {
+        closeBtn = document.createElement("button");
+        closeBtn.id = "chart-pinch-close-btn";
+        closeBtn.className = "chart-pinch-close-btn";
+        closeBtn.innerHTML = "✕";
+        closeBtn.title = "Minimize Chart";
+        closeBtn.addEventListener("click", () => restorePinchChart(chartEl));
+        document.body.appendChild(closeBtn);
+    } else {
+        closeBtn.style.display = "flex";
+    }
+
+    if (window.Plotly) {
+        window.Plotly.Plots.resize(chartEl);
+    }
+}
+
+function restorePinchChart(chartEl) {
+    if (!chartEl) chartEl = document.querySelector(".plotly-chart-box.chart-pinch-maximized");
+    if (chartEl) {
+        chartEl.classList.remove("chart-pinch-maximized");
+    }
+    document.body.style.overflow = "";
+
+    const closeBtn = document.getElementById("chart-pinch-close-btn");
+    if (closeBtn) {
+        closeBtn.style.display = "none";
+    }
+
+    if (chartEl && window.Plotly) {
+        window.Plotly.Plots.resize(chartEl);
+    }
 }
 
 // Timeframe Switcher on Existing Chart

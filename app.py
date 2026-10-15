@@ -53,7 +53,8 @@ from ai.assistant import (
     format_comparison_response,
     generate_comparison_analysis,
     format_conversational_response,
-    format_stock_tips_response
+    format_stock_tips_response,
+    format_currency_conversion_response
 )
 from data.global_market_data import get_market_overview
 from data.market_data import resolve_ticker
@@ -265,7 +266,24 @@ def handle_chat_and_analysis(
         if intent in ["GENERAL_GREETING", "GENERAL_HOW_ARE_YOU", "GENERAL_CAPABILITIES", "GENERAL_OFF_TOPIC", "GENERAL_CONVERSATION"] and not parsed.get("symbols"):
             assistant_reply = format_conversational_response(intent, lang)
 
-        # 4. Stock Tips Intent
+        # 4. Currency Conversion Intent (e.g. Dollar to Indian Rupees / Foreign stock in INR)
+        elif intent == "CURRENCY_CONVERSION":
+            resolved = resolve_ticker(primary_sym)
+            analysis = run_complete_stock_analysis(resolved, period=tf)
+            assistant_reply = format_currency_conversion_response(analysis, lang=lang)
+
+            # Update active stock & visuals
+            new_active_sym = resolved
+            q = analysis["quote"]
+            sym_name = q.get("name", resolved)
+            curr = q.get("currency_symbol", "₹")
+            new_cards_html = build_cards_html(analysis)
+            new_fig_candle = create_candlestick_figure(analysis["chart_payload"], symbol_name=sym_name, currency_symbol=curr)
+            new_fig_pred = create_prediction_figure(analysis["chart_payload"], symbol_name=sym_name, currency_symbol=curr)
+            new_fig_osc = create_oscillators_figure(analysis["chart_payload"], symbol_name=sym_name)
+            new_strategy_md = build_strategy_markdown(analysis)
+
+        # 5. Stock Tips Intent
         elif intent == "STOCK_TIPS":
             if not parsed.get("primary_symbol"):
                 assistant_reply = format_stock_tips_response(lang=lang)

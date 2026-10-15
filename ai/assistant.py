@@ -12,6 +12,124 @@ from typing import Dict, Any, Optional
 from utils.helpers import format_currency, format_percent, format_large_number
 from data.global_market_data import get_market_overview
 from model.live_signal import run_complete_stock_analysis
+from ai.translator import translate_to_language
+
+
+
+def _finalize_response(text: str, lang: str) -> str:
+    """
+    If lang is a standard pre-templated language (en, ta, tanglish, hi, hinglish),
+    return text as-is.
+    Otherwise, translate English text dynamically to the user's specific language.
+    """
+    if not text or lang in ["en", "ta", "tanglish", "hi", "hinglish"]:
+        return text
+    return translate_to_language(text, target_lang=lang)
+
+
+def format_currency_conversion_response(analysis: Dict[str, Any], lang: str) -> str:
+    """
+    Format foreign company stock quote with real-time Dollar to Indian Rupees (INR) conversion.
+    Includes live price in INR, 52-week high/low in INR, daily range in INR, support/resistance in INR,
+    and ML target price in INR.
+    """
+    q = analysis["quote"]
+    ind = analysis["indicators"]["latest"]
+    sr = analysis["support_resistance"]
+    pr = analysis["prediction"]
+    sg = analysis["strategy"]
+
+    sym = q["symbol"]
+    name = q["name"]
+    usd_price = q.get("current_price", 0.0)
+    chg_pct = q.get("change_percent", 0.0)
+
+    # INR calculations
+    inr_rate = q.get("usd_to_inr_rate") or 95.04
+    inr_price = q.get("price_in_inr") or (usd_price * inr_rate)
+    day_high_inr = q.get("day_high_inr") or (q.get("day_high", 0.0) * inr_rate)
+    day_low_inr = q.get("day_low_inr") or (q.get("day_low", 0.0) * inr_rate)
+    week52_high_inr = q.get("52_week_high_inr") or (q.get("52_week_high", 0.0) * inr_rate)
+    week52_low_inr = q.get("52_week_low_inr") or (q.get("52_week_low", 0.0) * inr_rate)
+    sup_inr = sr.get("nearest_support", 0.0) * inr_rate
+    res_inr = sr.get("nearest_resistance", 0.0) * inr_rate
+    target_5d_usd = pr.get("forecasts", {}).get("5_day", {}).get("target_price", usd_price)
+    target_5d_inr = target_5d_usd * inr_rate
+
+    icon = "🟢" if chg_pct >= 0 else "🔴"
+
+    if lang == "tanglish":
+        return f"""### 💵 {name} ({sym}) - டாலர் முதல் இந்திய ரூபாய் (USD to INR) மாற்றங்கள் {icon}
+
+• **இப்போதைய விலை (Current Price):** **₹{inr_price:,.2f} INR** (${usd_price:,.2f} USD)
+• **இன்னைக்கு மாற்றம் (Daily Change):** {chg_pct:+.2f}%
+• **நேரடி மாற்று விகிதம் (Exchange Rate):** 1 USD = **₹{inr_rate:,.2f} INR**
+
+---
+#### 📊 இந்திய ரூபாய் மதிப்பில் முக்கிய வர்த்தக நிலைகள் (Levels in INR):
+• **இன்னைக்கு வரம்பு (Day's Range):** ₹{day_low_inr:,.2f} - ₹{day_high_inr:,.2f}
+• **52 வார உச்சம் (52-Wk High):** ₹{week52_high_inr:,.2f} (${q.get('52_week_high', 0.0):,.2f})
+• **52 வார அடிமட்டம் (52-Wk Low):** ₹{week52_low_inr:,.2f} (${q.get('52_week_low', 0.0):,.2f})
+• **ஆதரவு நிலை (Support Floor):** ₹{sup_inr:,.2f} (${sr.get('nearest_support', 0.0):,.2f})
+• **தடை நிலை (Resistance Target):** ₹{res_inr:,.2f} (${sr.get('nearest_resistance', 0.0):,.2f})
+• **5-நாள் AI கணிப்பு (5-Day Target):** **₹{target_5d_inr:,.2f} INR** (${target_5d_usd:,.2f} USD)
+
+💡 *அமெரிக்க சந்தை விலையானது தற்போதைய நேரடி மாற்று விகிதம் ₹{inr_rate:.2f}/USD அடிப்படையில் கணக்கிடப்பட்டுள்ளது.*"""
+
+    elif lang == "ta":
+        return f"""### 💵 {name} ({sym}) - டாலர் முதல் இந்திய ரூபாய் (USD to INR) விவரங்கள் {icon}
+
+• **தற்போதைய விலை:** **₹{inr_price:,.2f} INR** (${usd_price:,.2f} USD)
+• **இன்றைய மாற்றம்:** {chg_pct:+.2f}%
+• **நேரடி நாணய மாற்று விகிதம்:** 1 USD = **₹{inr_rate:,.2f} INR**
+
+---
+#### 📊 இந்திய ரூபாயில் முக்கிய வர்த்தக நிலைகள்:
+• **இன்றைய குறைந்தபட்சம் / அதிகபட்சம்:** ₹{day_low_inr:,.2f} - ₹{day_high_inr:,.2f}
+• **52 வார அதிகபட்சம்:** ₹{week52_high_inr:,.2f} (${q.get('52_week_high', 0.0):,.2f})
+• **52 வார குறைந்தபட்சம்:** ₹{week52_low_inr:,.2f} (${q.get('52_week_low', 0.0):,.2f})
+• **ஆதரவு எல்லை (Support):** ₹{sup_inr:,.2f}
+• **இலக்கு எல்லை (Resistance):** ₹{res_inr:,.2f}
+• **5-நாள் AI இலக்கு கணிப்பு:** **₹{target_5d_inr:,.2f} INR**
+
+💡 *குறிப்பு: நேரடி USD/INR மாற்று விகிதம் (₹{inr_rate:.2f}) அடிப்படையில் கணக்கிடப்பட்டுள்ளது.*"""
+
+    elif lang in ["hi", "hinglish"]:
+        return f"""### 💵 {name} ({sym}) - डॉलर से भारतीय रुपये (USD to INR) में मूल्य {icon}
+
+• **वर्तमान मूल्य (Current Price):** **₹{inr_price:,.2f} INR** (${usd_price:,.2f} USD)
+• **आज का बदलाव (Daily Change):** {chg_pct:+.2f}%
+• **लाइव एक्सचेंज रेट (USD to INR Rate):** 1 USD = **₹{inr_rate:,.2f} INR**
+
+---
+#### 📊 भारतीय रुपये (INR) में महत्वपूर्ण स्तर:
+• **आज का दायरा (Day's Range):** ₹{day_low_inr:,.2f} - ₹{day_high_inr:,.2f}
+• **52 हफ़्ते का उच्चतम (52-Week High):** ₹{week52_high_inr:,.2f} (${q.get('52_week_high', 0.0):,.2f})
+• **52 हफ़्ते का निम्नतम (52-Week Low):** ₹{week52_low_inr:,.2f} (${q.get('52_week_low', 0.0):,.2f})
+• **सपोर्ट लेवल (Support Floor):** ₹{sup_inr:,.2f} (${sr.get('nearest_support', 0.0):,.2f})
+• **रेजिस्टेंस लेवल (Resistance):** ₹{res_inr:,.2f} (${sr.get('nearest_resistance', 0.0):,.2f})
+• **5-दिन का AI टारगेट (5-Day Target):** **₹{target_5d_inr:,.2f} INR** (${target_5d_usd:,.2f} USD)
+
+💡 *विदेशी कंपनी का शेयर मूल्य लाइव डॉलर-रुपया विनिमय दर (₹{inr_rate:.2f}/USD) पर आधारित है।*"""
+
+    else:
+        text = f"""### 💵 {name} ({sym}) - Dollar to Indian Rupees (USD to INR) Conversion {icon}
+
+• **Current Price in INR:** **₹{inr_price:,.2f} INR** (${usd_price:,.2f} USD)
+• **Daily Change:** {chg_pct:+.2f}%
+• **Live Exchange Rate:** 1 USD = **₹{inr_rate:,.2f} INR**
+
+---
+#### 📊 Key Valuation & Trading Levels in Indian Rupees:
+• **Day's Range:** ₹{day_low_inr:,.2f} - ₹{day_high_inr:,.2f} (${q.get('day_low', 0.0):,.2f} - ${q.get('day_high', 0.0):,.2f})
+• **52-Week High:** ₹{week52_high_inr:,.2f} (${q.get('52_week_high', 0.0):,.2f})
+• **52-Week Low:** ₹{week52_low_inr:,.2f} (${q.get('52_week_low', 0.0):,.2f})
+• **Technical Support Floor:** ₹{sup_inr:,.2f} (${sr.get('nearest_support', 0.0):,.2f})
+• **Primary Resistance Target:** ₹{res_inr:,.2f} (${sr.get('nearest_resistance', 0.0):,.2f})
+• **5-Day AI Forecast Target:** **₹{target_5d_inr:,.2f} INR** (${target_5d_usd:,.2f} USD)
+
+💡 *Converted using live Yahoo Finance market rate for USD/INR (`USDINR=X`).*"""
+        return _finalize_response(text, lang)
 
 def generate_comparison_analysis(symbol_a: str, symbol_b: str, timeframe: str = "1y") -> Dict[str, Any]:
     """
@@ -437,7 +555,7 @@ def format_stock_tips_response(lang: str, analysis: Optional[Dict[str, Any]] = N
         )
     else:
         # Default English
-        return (
+        return _finalize_response((
             "### 💡 Institutional Stock Market Rules & Trading Tips\n\n"
             "Here are the **7 Golden Rules of Stock Market Success** followed by professional fund managers and disciplined traders:\n\n"
             "---\n\n"
@@ -473,7 +591,7 @@ def format_stock_tips_response(lang: str, analysis: Optional[Dict[str, Any]] = N
             "| **Psychology** | Never chase extended candles | Avoids buying at local tops |\n\n"
             "---\n"
             "⚠️ *Disclaimer: Educational market guidance and quantitative risk principles. Always conduct independent research or consult a SEBI-registered financial advisor before investing.*"
-        )
+        ), lang)
 
 
 def format_market_overview_response(data: Dict[str, Any], lang: str) -> str:
@@ -492,7 +610,7 @@ def format_market_overview_response(data: Dict[str, Any], lang: str) -> str:
             icon = "🟢" if idx["change"] >= 0 else "🔴"
             lines.append(f"- **{idx['name']}**: {idx['currency_symbol']}{idx['current_price']:,.2f} ({idx['change_formatted']}) {icon} | Sentiment: {idx['sentiment']}")
         lines.append(f"\n*Market Status: {indices[0]['region']} market hours apply. Real-time updates active.*")
-        return "\n".join(lines)
+        return _finalize_response("\n".join(lines), lang)
 
     elif lang == "ta":
         lines = [
@@ -504,7 +622,7 @@ def format_market_overview_response(data: Dict[str, Any], lang: str) -> str:
             icon = "🟢" if idx["change"] >= 0 else "🔴"
             lines.append(f"- **{idx['name']}**: {idx['currency_symbol']}{idx['current_price']:,.2f} ({idx['change_formatted']}) {icon}")
         lines.append("\n*சந்தை தரவுகள் உடனுக்குடன் புதுப்பிக்கப்படுகின்றன.*")
-        return "\n".join(lines)
+        return _finalize_response("\n".join(lines), lang)
 
     elif lang in ["hi", "hinglish"]:
         lines = [
@@ -516,7 +634,7 @@ def format_market_overview_response(data: Dict[str, Any], lang: str) -> str:
             icon = "🟢" if idx["change"] >= 0 else "🔴"
             lines.append(f"- **{idx['name']}**: {idx['currency_symbol']}{idx['current_price']:,.2f} ({idx['change_formatted']}) {icon}")
         lines.append("\n*डेटा नवीनतम ट्रेडिंग सत्र के अनुसार है।*")
-        return "\n".join(lines)
+        return _finalize_response("\n".join(lines), lang)
 
     else:
         # English
@@ -530,7 +648,7 @@ def format_market_overview_response(data: Dict[str, Any], lang: str) -> str:
             icon = "🟢" if idx["change"] >= 0 else "🔴"
             lines.append(f"| **{idx['name']}** | {idx['currency_symbol']}{idx['current_price']:,.2f} | {idx['change_formatted']} {icon} | {idx['sentiment']} | {idx['volatility_20d']:.1f}% |")
         lines.append("\n*Values reflect the latest available exchange trading data.*")
-        return "\n".join(lines)
+        return _finalize_response("\n".join(lines), lang)
 
 
 def format_stock_analysis_response(analysis: Dict[str, Any], intent: str, lang: str) -> str:
@@ -562,6 +680,9 @@ def format_stock_analysis_response(analysis: Dict[str, Any], intent: str, lang: 
     # 1. SPECIALIZED TARGETED RESPONSES FOR SPECIFIC INTENTS
     if intent == "STOCK_TIPS":
         return format_stock_tips_response(lang, analysis=analysis)
+
+    if intent == "CURRENCY_CONVERSION":
+        return format_currency_conversion_response(analysis, lang)
 
     if intent == "WHY_MOVE":
         if lang == "tanglish":
@@ -903,6 +1024,7 @@ def format_stock_analysis_response(analysis: Dict[str, Any], intent: str, lang: 
 - **Risk/Reward Profile:** {sg['risk_reward_ratio']}
 
 *Disclaimer: {sg['disclaimer']}*"""
+        return _finalize_response(text, lang)
 
 
 def format_comparison_response(comp: Dict[str, Any], lang: str) -> str:
