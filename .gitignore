@@ -26,3 +26,4 @@ ENV/
 *.log
 .DS_Store
 Thumbs.db
+.netlify/

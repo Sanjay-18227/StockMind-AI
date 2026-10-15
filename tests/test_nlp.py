@@ -19,7 +19,13 @@ queries = [
     "TCS stock வாங்கலாமா?",
     "Nifty இன்னைக்கு எப்படி இருக்கு?",
     "Apple stock down ஆக reason என்ன?",
-    "TCS stock ippo epdi iruku?"
+    "TCS stock ippo epdi iruku?",
+    "give a stock market tips",
+    "Give me stock market tips.",
+    "Tips for TCS.",
+    "trading tips",
+    "ஸ்டாக் மார்க்கெட் டிப்ஸ் குடுங்க",
+    "trading tips batao"
 ]
 
 print(f"{'Query':<35} | {'Lang':<8} | {'Intent':<20} | {'Sym':<10}")

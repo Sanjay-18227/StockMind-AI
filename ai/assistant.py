@@ -224,6 +224,258 @@ def format_conversational_response(intent: str, lang: str) -> str:
             )
 
 
+def format_stock_tips_response(lang: str, analysis: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Format actionable, professional stock market tips & golden trading rules.
+    If a specific stock analysis is provided (e.g. "tips for TCS"), combines stock-specific
+    actionable levels (support floor, resistance target, RSI caution, position stop-loss)
+    with institutional trading rules.
+    Otherwise, delivers complete institutional stock market guidelines.
+    """
+    if analysis is not None:
+        q = analysis["quote"]
+        ind = analysis["indicators"]["latest"]
+        sr = analysis["support_resistance"]
+        rk = analysis["risk"]
+        sg = analysis["strategy"]
+
+        sym = q["symbol"]
+        name = q["name"]
+        curr = format_currency(q["current_price"], q["currency_symbol"])
+        chg = format_percent(q["change_percent"])
+        rsi = ind["rsi_14"]
+        trend = ind["trend_bias"]
+        sup = format_currency(sr["nearest_support"], q["currency_symbol"])
+        res = format_currency(sr["nearest_resistance"], q["currency_symbol"])
+        inval = format_currency(sg["invalidation_level"], q["currency_symbol"])
+        risk = rk["risk_level"]
+        rr = sg["risk_reward_ratio"]
+
+        # Formulate tactical advice based on RSI and trend
+        if rsi >= 70:
+            rsi_tip_en = f"RSI is currently Overbought ({rsi:.1f}). Avoid buying aggressively at resistance {res}; wait for a healthy pullback towards {sup}."
+            rsi_tip_tang = f"RSI Overbought-ல் ({rsi:.1f}) இருக்கு. உச்சத்தில் அவசரப்பட்டு வாங்காதீங்க; {sup} support நோக்கி pullback வரும் வரை காத்திருங்கள்."
+            rsi_tip_ta = f"RSI மிகை-வாங்குதல் (Overbought {rsi:.1f}) நிலையில் உள்ளது. உச்சத்தில் வாங்காமல் {sup} ஆதரவு வரை காத்திருப்பது நல்லது."
+            rsi_tip_hi = f"RSI ओवरबॉट ज़ोन ({rsi:.1f}) में है। ऊपरी स्तरों पर तुरंत खरीदारी से बचें, {sup} सपोर्ट की ओर गिरावट का इंतजार करें।"
+        elif rsi <= 35:
+            rsi_tip_en = f"RSI is currently Oversold ({rsi:.1f}) near support {sup}. Look for bullish volume confirmation or reversal candlestick before entry."
+            rsi_tip_tang = f"RSI Oversold-ல் ({rsi:.1f}) இருக்கு. ஆதரவு {sup} அருகில் reversal volume வருகிறதா என்று கவனித்து என்ட்ரி எடுக்கலாம்."
+            rsi_tip_ta = f"RSI மிகை-விற்பனை (Oversold {rsi:.1f}) நிலையில் உள்ளது. {sup} ஆதரவு அருகே திருப்புமுனை சமிக்ஞை தென்படுகிறதா என கவனிக்கவும்."
+            rsi_tip_hi = f"RSI ओवरसोल्ड ज़ोन ({rsi:.1f}) में है। {sup} सपोर्ट के पास रिवर्सल कैंडल या वॉल्यूम की पुष्टि के बाद ही ट्रेड प्लान करें।"
+        else:
+            rsi_tip_en = f"RSI is balanced ({rsi:.1f}). Trade strictly with the {trend} trend using a disciplined stop-loss."
+            rsi_tip_tang = f"RSI சமநிலையில் ({rsi:.1f}) இருக்கு. {trend} போக்குக்கு ஏற்றவாறு Stop-loss உடன் trade செய்யலாம்."
+            rsi_tip_ta = f"RSI சமநிலையான ({rsi:.1f}) அளவில் உள்ளது. சந்தைப் போக்குக்கு ({trend}) இணங்க Stop-loss உடன் வர்த்தகம் செய்யவும்."
+            rsi_tip_hi = f"RSI संतुलित स्तर ({rsi:.1f}) पर है। {trend} ट्रेंड के अनुसार स्टॉप-लॉस के साथ ट्रेड करें।"
+
+        if lang == "tanglish":
+            return (
+                f"### 💡 {name} ({sym}) - Actionable Stock Tips & Trading Levels\n\n"
+                f"• **Current Price:** **{curr}** ({chg})\n"
+                f"• **Technical Trend:** **{trend}**\n"
+                f"• **Key Support (Safety Floor):** **{sup}** *(Stop-Loss Reference)*\n"
+                f"• **Key Resistance (Target Zone):** **{res}** *(Profit-Booking Area)*\n"
+                f"• **RSI Momentum ({rsi:.1f}):** {rsi_tip_tang}\n\n"
+                f"---\n"
+                f"#### 🎯 இந்த பங்குக்கான 4 முக்கிய Tips:\n"
+                f"1. **Entry Strategy:** அவசரப்பட்டு Resistance ({res}) அருகில் வாங்காதீர்கள். {sup} ஆதரவு அருகில் pullback வரும்போது வாங்கலாம்.\n"
+                f"2. **Stop-Loss Discipline:** {inval}-க்கு கீழே விலை இறங்கினால் setup தவறானது என்று ஏற்றுக்கொண்டு வெளியேறவும்.\n"
+                f"3. **Position Sizing:** இந்த ஒரு பங்கில் உங்கள் மொத்த முதலீட்டில் 1-2%-க்கு மேல் நஷ்டம் வராதவாறு share quantity-ஐ தேர்வு செய்யுங்கள்.\n"
+                f"4. **Risk-to-Reward:** இந்த பங்கின் தற்போதைய setup R:R ratio: **{rr}**.\n\n"
+                f"---\n"
+                f"⚠️ *முக்கிய குறிப்பு: இது கல்வி சார்ந்த Technical Analysis மட்டுமே. தனிப்பட்ட நிதி ஆலோசனை (Financial Advice) அல்ல.*"
+            )
+        elif lang == "ta":
+            return (
+                f"### 💡 {name} ({sym}) - முதலீட்டு குறிப்புகள் & முக்கிய நிலைகள்\n\n"
+                f"• **தற்போதைய விலை:** **{curr}** ({chg})\n"
+                f"• **சந்தை போக்கு (Trend):** **{trend}**\n"
+                f"• **ஆதரவு நிலை (Support):** **{sup}** *(நஷ்டத் தடுப்பு குறிப்பு)*\n"
+                f"• **தடை நிலை (Resistance):** **{res}** *(இலக்கு / லாப பதிவு எல்லை)*\n"
+                f"• **RSI வேகம் ({rsi:.1f}):** {rsi_tip_ta}\n\n"
+                f"---\n"
+                f"#### 🎯 இந்த பங்கை வர்த்தகம் செய்வதற்கான முக்கிய குறிப்புகள்:\n"
+                f"1. **நுழைவு உத்தி (Entry):** {sup} ஆதரவு எல்லைக்கு அருகில் அல்லது {res} நிலையை வால்யூமுடன் உடைக்கும் போது மட்டுமே வாங்குவது பாதுகாப்பானது.\n"
+                f"2. **நஷ்டத் தடுப்பு (Stop-Loss):** {inval} அளவுக்கு கீழே விலை சென்றால் நஷ்டத்தை ஏற்று வெளியேறவும்.\n"
+                f"3. **மூலதன மேலாண்மை:** ஒரு வர்த்தகத்தில் மொத்த கணக்கில் 1-2% மேல் இழக்க வேண்டாம்.\n"
+                f"4. **இடர் - வருவாய் விகிதம்:** தற்போதைய அமைப்பு விகிதம்: **{rr}**.\n\n"
+                f"---\n"
+                f"⚠️ *மறுப்பு: இது கல்வி மற்றும் விழிப்புணர்வு நோக்கங்களுக்கான ஆய்வு மட்டுமே.*"
+            )
+        elif lang in ["hi", "hinglish"]:
+            return (
+                f"### 💡 {name} ({sym}) - ट्रेडिंग टिप्स और मुख्य लेवल्स\n\n"
+                f"• **करंट प्राइस:** **{curr}** ({chg})\n"
+                f"• **टेक्निकल ट्रेंड:** **{trend}**\n"
+                f"• **अहम सपोर्ट (Support):** **{sup}** *(स्टॉप-लॉस स्तर)*\n"
+                f"• **अहम रेजिस्टेंस (Resistance):** **{res}** *(टारगेट / प्रॉफिट बुकिंग ज़ोन)*\n"
+                f"• **RSI मोमेंटम ({rsi:.1f}):** {rsi_tip_hi}\n\n"
+                f"---\n"
+                f"#### 🎯 {name} के लिए 4 ज़रूरी टिप्स:\n"
+                f"1. **एंट्री स्ट्रैटेजी:** रेजिस्टेंस ({res}) के ठीक पास चेज़ करने से बचें। {sup} के पास डिप्स पर ही एंट्री की योजना बनाएं।\n"
+                f"2. **स्टॉप-लॉस अनुशासन:** {inval} के नीचे क्लोजिंग मिलने पर ट्रेड से बाहर निकलें।\n"
+                f"3. **कैपिटल प्रोटेक्शन:** इस ट्रेड में कुल पोर्टफोलियो का 1-2% से अधिक रिस्क न लें।\n"
+                f"4. **रिस्क-रिवॉर्ड रेश्यो:** इस सेटअप का अनुमानित R:R: **{rr}**।\n\n"
+                f"---\n"
+                f"⚠️ *अस्वीकरण: यह केवल शैक्षणिक और तकनीकी विश्लेषण पर आधारित जानकारी है, व्यक्तिगत वित्तीय सलाह नहीं।*"
+            )
+        else:
+            return (
+                f"### 💡 {name} ({sym}) — Actionable Stock Tips & Key Levels\n\n"
+                f"• **Current Price:** **{curr}** ({chg})\n"
+                f"• **Prevailing Trend:** **{trend}**\n"
+                f"• **Key Support (Floor):** **{sup}** *(Primary Stop-Loss Anchor)*\n"
+                f"• **Key Resistance (Ceiling):** **{res}** *(Upside Target & Profit Zone)*\n"
+                f"• **RSI Condition ({rsi:.1f}):** {rsi_tip_en}\n\n"
+                f"---\n"
+                f"#### 🎯 4 Execution Rules for Trading {name}:\n"
+                f"1. **Entry Discipline:** Do not chase gap-ups or buy right under resistance ({res}). The highest-probability entry is on a confirmed test of support ({sup}).\n"
+                f"2. **Strict Invalidation Level:** A sustained breakdown below **{inval}** invalidates the bullish thesis. Cut the loss without hesitation.\n"
+                f"3. **Position Sizing Rule:** Size your shares so that hitting the stop-loss at {inval} risks no more than 1% to 2% of your total trading capital.\n"
+                f"4. **Risk-to-Reward Ratio:** This technical setup currently offers an estimated R:R ratio of **{rr}**.\n\n"
+                f"---\n"
+                f"⚠️ *Disclaimer: Educational technical setup. Not individual investment advice. Always manage risk rigorously.*"
+            )
+
+    # General Stock Market Tips (No specific stock specified)
+    if lang == "tanglish":
+        return (
+            "### 💡 பங்குச்சந்தைக்கான 7 பொன்விதிகள் (Stock Market Tips & Golden Rules)\n\n"
+            "பங்குச்சந்தையில் (Stock Market) நீண்ட காலத்தில் நஷ்டத்தை தவிர்த்து நிலையான வெற்றி பெற, "
+            "தொழில்முறை முதலீட்டாளர்கள் பின்பற்றும் இந்த **7 முக்கிய விதிகளை** எப்போதும் நினைவில் வையுங்கள்:\n\n"
+            "---\n\n"
+            "#### 1. 🛡️ Risk Management (1-2% மூலதன விதி)\n"
+            "• உங்க மொத்த முதலீட்டில் (Capital) எந்த ஒரு தனி trade-க்கும் **1% முதல் 2%-க்கு மேல் நஷ்டம் வர அனுமதிக்காதீர்கள்**.\n"
+            "• உங்க Stop-loss தூரத்தை வைத்து வாங்கும் shares எண்ணிக்கையை (position sizing) கணக்கிடுங்கள், பேராசையால் அதிக shares வாங்காதீர்கள்.\n\n"
+            "#### 2. 🛑 எப்போதும் Stop-Loss உடன் வர்த்தகம் செய்யுங்கள்\n"
+            "• Order போடுவதற்கு முன்பே **Stop-loss எங்கே வைக்க வேண்டும்** என்பதை திட்டமிடுங்கள்.\n"
+            "• விலை குறையும் போது பயந்துபோய் Stop-loss-ஐ தள்ளி வைக்காதீர்கள். சிறிய நஷ்டம் உங்களை சந்தையில் உயிருடன் வைக்கும்; பெரிய நஷ்டம் முதலீட்டை அழித்துவிடும்.\n\n"
+            "#### 3. 📈 Trend-ஐ எதிர்த்து நிற்காதீர்கள் (\"Trend is Your Friend\")\n"
+            "• 50 EMA & 200 EMA-க்கு மேல் பயணிக்கும் uptrend பங்குகளிலேயே அதிக வாய்ப்புகளை தேடுங்கள்.\n"
+            "• \"விலை 40% இறங்கிடுச்சு, இப்போ cheap-ஆ இருக்கு\" என்று கீழே சரியும் பங்குகளை (falling knife) அவசரப்பட்டு வாங்காதீர்கள். Reversal உறுதியாகும் வரை பொறுமை காக்கவும்.\n\n"
+            "#### 4. ⚖️ Risk-to-Reward Ratio (குறைந்தது 1:2)\n"
+            "• நீங்கள் எடுக்கும் ஒவ்வொரு ₹1 நஷ்ட அபாயத்திற்கும் குறைந்தது **₹2 லாபம் கிடைக்க வாய்ப்புள்ள trades-ஐ மட்டுமே** தேர்ந்தெடுக்கவும்.\n"
+            "• 1:2 ratio இருந்தால் 50% முறை தவறு செய்தாலும் உங்கள் மொத்த கணக்கில் நல்ல லாபமே நிற்கும்!\n\n"
+            "#### 5. 🧩 Diversification (துறைசார் பரவலாக்கம்)\n"
+            "• மொத்த முதலீட்டையும் ஒரே பங்கில் அல்லது ஒரே sector-ல் போடாதீர்கள்.\n"
+            "• **70/30 பார்முலா:** 70% பணத்தை Nifty 50 தரமான பெரிய நிறுவனங்களிலும், 30% தொகையை swing/momentum trading-லும் பிரித்து வைக்கவும்.\n\n"
+            "#### 6. 🧘 FOMO-வை தவிருங்கள் (உச்சத்தில் வாங்காதீர்கள்)\n"
+            "• ஒரு பங்கு ஏற்கனவே 2-3 நாட்களில் 15% ஏறிவிட்டால், அவசரப்பட்டு துரத்தி வாங்காதீர்கள் (No FOMO). Support-க்கு pullback வரும் வரை காத்திருங்கள்.\n"
+            "• ஒரு trade நஷ்டமானால் உடனே கோபத்தில் அடுத்த trade எடுக்காதீர்கள் (Revenge trading வேண்டாம்).\n\n"
+            "#### 7. 📖 Trading Journal பராமரியுங்கள்\n"
+            "• ஒவ்வொரு trade-ன் Entry, Exit, காரணம் மற்றும் செய்த தவறுகளை டைரியில் எழுதி வையுங்கள். உங்கள் தவறுகளே சிறந்த ஆசான்.\n\n"
+            "---\n"
+            "| முக்கிய விதி | செய்ய வேண்டியது | பயன் |\n"
+            "| :--- | :--- | :--- |\n"
+            "| **Capital Risk** | Trade-க்கு 1-2% நஷ்ட வரம்பு | முழு மூலதனம் அழியாமல் காக்கும் |\n"
+            "| **Stop-Loss** | Entry போடும்போதே நிர்ணயிக்கவும் | உணர்ச்சிவசப்பட்டு முடிவெடுப்பதை தடுக்கும் |\n"
+            "| **Risk / Reward** | குறைந்தது 1:2 விகிதம் | நீண்டகால நிலையான லாபம் |\n"
+            "| **Psychology** | உச்சத்தில் துரத்தி வாங்காதீர்கள் | அதிக விலையில் சிக்குவதை தடுக்கும் |\n\n"
+            "---\n"
+            "⚠️ *முக்கிய குறிப்பு: இது கல்வி மற்றும் விழிப்புணர்வுக்கான தகவல் மட்டுமே. தனிப்பட்ட நிதி ஆலோசனை (Financial Advice) அல்ல.*"
+        )
+    elif lang == "ta":
+        return (
+            "### 💡 பங்குச்சந்தை முதலீடு & வர்த்தகத்திற்கான 7 பொன்விதிகள் (Stock Market Tips)\n\n"
+            "பங்குச்சந்தையில் மூலதனத்தை பாதுகாத்து நிலையான லாபம் ஈட்ட அனுபவமிக்க முதலீட்டாளர்கள் பின்பற்றும் **7 அத்தியாவசிய விதிகள்** இதோ:\n\n"
+            "---\n\n"
+            "#### 1. 🛡️ மூலதனப் பாதுகாப்பு (1-2% இடர் விதி)\n"
+            "• எந்தவொரு தனிப்பட்ட வர்த்தகத்திலும் உங்கள் மொத்த தொகையில் **1% முதல் 2%-க்கு மேல் இழப்பை அனுமதிக்காதீர்கள்**.\n"
+            "• பங்குகளை வாங்கும் அளவை (Position Size) உங்கள் நஷ்ட வரம்பை அடிப்படையாகக் கொண்டு தீர்மானியுங்கள்.\n\n"
+            "#### 2. 🛑 நஷ்டத் தடுப்பு வரம்பு (Stop-Loss) கட்டாயம்\n"
+            "• வர்த்தகத்தில் இறங்குவதற்கு முன்பே Stop-Loss விலையை நிர்ணயித்து கணினியில் பதிவு செய்யுங்கள்.\n"
+            "• விலை சரியும்போது நஷ்டத் தடுப்பு வரம்பை தள்ளி வைக்காதீர்கள்.\n\n"
+            "#### 3. 📈 சந்தைப் போக்கின்படி வர்த்தகம் (Trend Following)\n"
+            "• சந்தையின் போக்கிற்கு எதிராக வர்த்தகம் செய்யாதீர்கள். 50 மற்றும் 200 நாள் நகரும் சராசரிகளுக்கு (EMA) மேலே உள்ள பங்குகளை தேர்ந்தெடுக்கவும்.\n"
+            "• வேகமாக சரியும் பங்குகளை \"மலிவாக உள்ளது\" என்ற ஒரே காரணத்திற்காக முன்கூட்டியே வாங்காதீர்கள்.\n\n"
+            "#### 4. ⚖️ இடர் - வருவாய் விகிதம் (குறைந்தது 1:2)\n"
+            "• நீங்கள் ஏற்கும் ஒவ்வொரு ₹1 இழப்பு அபாயத்திற்கும் ₹2 அல்லது அதற்கு மேற்பட்ட லாப வாய்ப்புள்ள அமைப்புகளில் மட்டுமே வர்த்தகம் செய்யுங்கள்.\n\n"
+            "#### 5. 🧩 முதலீட்டுப் பரவலாக்கம் (Diversification)\n"
+            "• அனைத்து மூலதனத்தையும் ஒரே பங்கில் அல்லது ஒரே துறையில் குவிக்காதீர்கள்; வெவ்வேறு துறைகளில் பிரித்து முதலீடு செய்யவும்.\n\n"
+            "#### 6. 🧘 உணர்ச்சிகளைக் கட்டுப்படுத்துதல் (FOMO தவிர்த்தல்)\n"
+            "• மிக வேகமாக உயர்ந்த பங்குகளை உச்சத்தில் அவசரமாக துரத்தி வாங்காதீர்கள்; விலை நிலைபெறும் வரை காத்திருங்கள்.\n"
+            "• நஷ்டத்திற்குப் பிறகு பழிவாங்கும் நோக்கில் அவசரமாக வர்த்தகம் செய்வதை (Revenge Trading) தவிர்க்கவும்.\n\n"
+            "#### 7. 📖 வர்த்தகக் குறிப்பேடு (Trading Journal)\n"
+            "• ஒவ்வொரு வர்த்தகத்தின் முடிவுகள், நுழைவு, வெளியேறுதல் மற்றும் காரணங்களை குறித்து வைத்து வாரந்தோறும் ஆய்வு செய்யுங்கள்.\n\n"
+            "---\n"
+            "⚠️ *பொறுப்புத் துறப்பு: இது கல்வி மற்றும் விழிப்புணர்வு நோக்கங்களுக்கான தகவல்கள் மட்டுமே. முதலீட்டு முடிவுகளுக்கு முன் தகுதியான நிதி ஆலோசகரை அணுகவும்.*"
+        )
+    elif lang in ["hi", "hinglish"]:
+        return (
+            "### 💡 शेयर बाजार के 7 स्वर्णिम नियम और टिप्स (Stock Market Tips & Golden Rules)\n\n"
+            "शेयर बाजार में पूंजी सुरक्षित रखते हुए अनुशासित और सफल निवेशक बनने के लिए ये **7 गोल्डन रूल्स** हमेशा याद रखें:\n\n"
+            "---\n\n"
+            "#### 1. 🛡️ रिस्क मैनेजमेंट (1-2% कैपिटल नियम)\n"
+            "• किसी भी एक ट्रेड में अपनी कुल ट्रेडिंग पूंजी का **1% से 2% से अधिक जोखिम न लें**।\n"
+            "• अपनी पोजीशन का साइज हमेशा स्टॉप-लॉस की दूरी देखकर तय करें, लालच में आकर ओवर-ट्रेडिंग न करें।\n\n"
+            "#### 2. 🛑 हमेशा Stop-Loss लगाएं (नो एक्सेप्शन)\n"
+            "• ट्रेड में एंट्री लेने से पहले ही स्टॉप-लॉस तय करें।\n"
+            "• ट्रेड गलत जाने पर स्टॉप-लॉस को कभी पीछे न हटाएं। छोटे नुकसान स्वीकार करना ही बड़ी पूंजी को बचाता है।\n\n"
+            "#### 3. 📈 ट्रेंड के साथ ट्रेड करें (\"Trend is Your Friend\")\n"
+            "• 50 EMA और 200 EMA के ऊपर मजबूत ट्रेंड वाले शेयरों में खरीदारी के मौके ढूंढें।\n"
+            "• गिरते हुए शेयर को केवल \"सस्ता\" समझकर बॉटम पर पकड़ने की कोशिश न करें (Catching a falling knife से बचें)।\n\n"
+            "#### 4. ⚖️ रिस्क-रिवॉर्ड रेश्यो (कम से कम 1:2)\n"
+            "• हमेशा ऐसे सेटअप चुनें जहाँ संभावित मुनाफा (Reward) आपके नुकसान (Risk) से कम से कम **2 गुना** हो।\n"
+            "• 1:2 R:R होने पर अगर आप 50% ट्रेड्स में भी गलत होते हैं, तब भी आपका कुल खाता मुनाफे में रहेगा!\n\n"
+            "#### 5. 🧩 पोर्टफोलियो डाइवर्सिफिकेशन\n"
+            "• सारा पैसा एक ही शेयर या एक ही सेक्टर (जैसे केवल आईटी या पेनी स्टॉक्स) में न लगाएं।\n"
+            "• 70% पूंजी मजबूत ब्लू-चिप कंपनियों में और 30% स्विंग/मोमेंटम ट्रेड्स में बांटें।\n\n"
+            "#### 6. 🧘 FOMO (छूट जाने का डर) से बचें\n"
+            "• जो शेयर 2-3 दिनों में 15% भाग चुका हो, उसे ऊपर के स्तरों पर न खरीदें। रिट्रेसमेंट या सपोर्ट पर आने का इंतजार करें।\n"
+            "• नुकसान के तुरंत बाद गुस्से या बदले की भावना में ट्रेड (Revenge Trading) न करें।\n\n"
+            "#### 7. 📖 ट्रेडिंग जर्नल बनाएं\n"
+            "• अपने हर ट्रेड की एंट्री, एग्जिट, कारण और सीखी गई बातें लिखें और नियमित रूप से उसकी समीक्षा करें।\n\n"
+            "---\n"
+            "| नियम | क्या करें | फायदा |\n"
+            "| :--- | :--- | :--- |\n"
+            "| **Capital Risk** | प्रति ट्रेड 1-2% का रिस्क | पूंजी कभी खत्म नहीं होगी |\n"
+            "| **Stop-Loss** | एंट्री के समय ही लगाएं | भावनाओं में गलत फैसले नहीं होंगे |\n"
+            "| **Risk / Reward** | कम से कम 1:2 अनुपात | दीर्घकालिक निरंतर लाभ |\n"
+            "| **Psychology** | टॉप पर चेज़ न करें | ऊंचे दामों पर फंसने से बचाव |\n\n"
+            "---\n"
+            "⚠️ *अस्वीकरण: यह केवल शैक्षणिक और वित्तीय जागरूकता के लिए है, व्यक्तिगत निवेश सलाह नहीं।*"
+        )
+    else:
+        # Default English
+        return (
+            "### 💡 Institutional Stock Market Rules & Trading Tips\n\n"
+            "Here are the **7 Golden Rules of Stock Market Success** followed by professional fund managers and disciplined traders:\n\n"
+            "---\n\n"
+            "#### 1. 🛡️ Master Capital Risk Management (The 1-2% Rule)\n"
+            "• **Never risk more than 1% to 2%** of your total portfolio on any single trade.\n"
+            "• Calculate your position sizing based on your stop-loss distance, never on gut feeling or optimism.\n"
+            "• *Example:* With a ₹1,00,000 account, your maximum loss per trade if stopped out must not exceed ₹1,000 to ₹2,000.\n\n"
+            "#### 2. 🛑 Always Use a Defined Stop-Loss (Non-Negotiable)\n"
+            "• Place your hard stop-loss order in the system **simultaneously with your entry**.\n"
+            "• **Never widen or remove a stop-loss** when the market moves against you. Small, controlled losses keep you in the game; unmanaged drawdowns ruin accounts.\n\n"
+            "#### 3. 📈 Trade in the Direction of the Trend (\"Trend is Your Friend\")\n"
+            "• Focus your long ideas on stocks trading **above their 50-day and 200-day EMAs** with rising volume.\n"
+            "• Avoid \"catching falling knives\" simply because a stock looks cheap after a 40% fall — a cheap stock can easily drop another 50% until technical accumulation confirms a bottom.\n\n"
+            "#### 4. ⚖️ Demand an Asymmetric Risk-to-Reward Ratio (Min 1:2)\n"
+            "• Only execute setups where the realistic technical target offers at least **twice the distance** of your stop-loss.\n"
+            "• With a 1:2 Risk-to-Reward ratio, you only need a **35% to 40% win rate** to remain consistently profitable over time.\n\n"
+            "#### 5. 🧩 Diversification & The 70/30 Core-Satellite Strategy\n"
+            "• Never concentrate your entire capital into a single stock or a single sector (e.g. only IT or only small-caps).\n"
+            "• **70% Core:** Quality large-cap market leaders with clean balance sheets and consistent earnings growth.\n"
+            "• **30% Satellite:** Tactical swing setups and high-momentum leaders managed with trailing stop-losses.\n\n"
+            "#### 6. 🧘 Conquer Emotional Psychology & Avoid FOMO\n"
+            "• Never chase a stock that has already surged 10% to 20% in recent sessions. The highest probability entry is always on an orderly pullback into key support.\n"
+            "• Never engage in **revenge trading** after a loss. When emotional or shaken, close the terminal.\n\n"
+            "#### 7. 📖 Maintain a Disciplined Trading Journal\n"
+            "• Record every trade: entry price, stop-loss, target, technical catalyst, and emotional state. Review it weekly to eliminate recurring mistakes.\n\n"
+            "---\n\n"
+            "| Principle | Execution Blueprint | Strategic Benefit |\n"
+            "| :--- | :--- | :--- |\n"
+            "| **Capital Preservation** | Cap risk at 1-2% per setup | Prevents catastrophic drawdown |\n"
+            "| **Stop-Loss Discipline** | Pre-set before trade execution | Eliminates emotional hesitation |\n"
+            "| **Risk / Reward Ratio** | Target at least 1:2 or 1:3 | Mathematical positive expectancy |\n"
+            "| **Trend Alignment** | Long above 50/200 EMA | Trades with institutional flow |\n"
+            "| **Psychology** | Never chase extended candles | Avoids buying at local tops |\n\n"
+            "---\n"
+            "⚠️ *Disclaimer: Educational market guidance and quantitative risk principles. Always conduct independent research or consult a SEBI-registered financial advisor before investing.*"
+        )
+
+
 def format_market_overview_response(data: Dict[str, Any], lang: str) -> str:
     """Format market overview response in target language."""
     mood = data["overall_sentiment"]
@@ -308,6 +560,9 @@ def format_stock_analysis_response(analysis: Dict[str, Any], intent: str, lang: 
     res = format_currency(sr["nearest_resistance"], q["currency_symbol"])
 
     # 1. SPECIALIZED TARGETED RESPONSES FOR SPECIFIC INTENTS
+    if intent == "STOCK_TIPS":
+        return format_stock_tips_response(lang, analysis=analysis)
+
     if intent == "WHY_MOVE":
         if lang == "tanglish":
             return (

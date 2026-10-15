@@ -20,7 +20,8 @@ from ai.assistant import (
     format_stock_analysis_response,
     format_comparison_response,
     generate_comparison_analysis,
-    format_conversational_response
+    format_conversational_response,
+    format_stock_tips_response
 )
 from data.global_market_data import get_market_overview
 from data.market_data import resolve_ticker
@@ -29,7 +30,7 @@ from model.live_signal import run_complete_stock_analysis
 
 app = FastAPI(
     title="StockMind AI",
-    description="Quantitative Financial Assistant & ML Prediction Platform",
+    description="Financial Intelligence & ML Prediction Platform",
     version="1.0.0"
 )
 
@@ -152,7 +153,43 @@ async def process_chat(req: ChatRequest):
             "language": lang
         })
 
-    # 4. Handle Market Overview Intent
+    # 4. Handle Stock Tips Intent (General stock market tips or stock-specific tips)
+    if intent == "STOCK_TIPS":
+        if not parsed.get("primary_symbol"):
+            text_response = format_stock_tips_response(lang=lang)
+            return JSONResponse(content={
+                "text_response": text_response,
+                "stock_analysis": None,
+                "comparison": None,
+                "market_overview": None,
+                "intent": intent,
+                "language": lang
+            })
+        else:
+            try:
+                resolved = resolve_ticker(primary_sym)
+                analysis = run_complete_stock_analysis(resolved, period=tf)
+                text_response = format_stock_tips_response(lang=lang, analysis=analysis)
+                return JSONResponse(content={
+                    "text_response": text_response,
+                    "stock_analysis": analysis,
+                    "comparison": None,
+                    "market_overview": None,
+                    "intent": intent,
+                    "language": lang
+                })
+            except Exception:
+                text_response = format_stock_tips_response(lang=lang)
+                return JSONResponse(content={
+                    "text_response": text_response,
+                    "stock_analysis": None,
+                    "comparison": None,
+                    "market_overview": None,
+                    "intent": intent,
+                    "language": lang
+                })
+
+    # 5. Handle Market Overview Intent
     if intent == "MARKET_OVERVIEW":
         try:
             overview = get_market_overview()

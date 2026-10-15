@@ -17,6 +17,7 @@ INTENTS = [
     "PREDICTION_QUERY",
     "TIMEFRAME_HISTORY",
     "STOCK_ANALYSIS",
+    "STOCK_TIPS",
     "GENERAL_CONVERSATION"
 ]
 
@@ -44,7 +45,8 @@ STOPWORDS = {
     "THE", "AND", "FOR", "WHY", "HOW", "WHAT", "WHEN", "CAN", "YOU", "ARE",
     "THIS", "STOCK", "SHARE", "PRICE", "TODAY", "TELL", "GIVE", "SHOW",
     "ANALYSIS", "ANALYZE", "COMPARE", "VERSUS", "PREDICT", "PREDICTION",
-    "BUY", "SELL", "HOLD", "DOWN", "FALL", "DROP", "GOOD", "BEST", "LOOK"
+    "BUY", "SELL", "HOLD", "DOWN", "FALL", "DROP", "GOOD", "BEST", "LOOK",
+    "TIP", "TIPS", "RULE", "RULES", "ADVICE"
 }
 
 def extract_symbols_from_text(text: str) -> List[str]:
@@ -58,7 +60,10 @@ def extract_symbols_from_text(text: str) -> List[str]:
     # 1. Sort aliases by descending length to prevent sub-string collision
     sorted_aliases = sorted(COMMON_ALIASES.items(), key=lambda x: len(x[0]), reverse=True)
     
+    GENERIC_WORDS = {"tip", "tips", "rule", "rules", "stock", "stocks", "share", "shares", "today", "good", "best", "all", "now", "market"}
     for alias, ticker in sorted_aliases:
+        if alias.lower() in GENERIC_WORDS or alias.upper() in STOPWORDS:
+            continue
         # Match word boundaries or non-alphanumeric boundaries
         pattern = r"(?:\b|^|\s)" + re.escape(alias) + r"(?:\b|$|\s)"
         for m in re.finditer(pattern, lower):
@@ -175,7 +180,47 @@ def classify_intent(text: str, active_symbol: Optional[str] = None) -> Dict[str,
             "raw_query": cleaned
         }
 
-    # 6. Check for Buy / Sell / Investment setup
+    # 6. Check for Stock Market Tips & Trading Rules
+    tips_patterns = [
+        "stock market tip", "stock market tips", "share market tip", "share market tips",
+        "trading tip", "trading tips", "investment tip", "investment tips", "investing tip", "investing tips",
+        "stock tip", "stock tips", "market tip", "market tips", "trading rule", "trading rules",
+        "investing rule", "investing rules", "golden rule", "golden rules",
+        "give tips", "give tip", "give some tips", "give stock market tips", "give a stock market tips",
+        "how to trade safely", "trading advice", "investment advice", "best tips",
+        "tip", "tips", "advice", "guideline", "guidelines",
+        "டிப்ஸ்", "டிப்", "டிப்ஸ் கொடுங்கள்", "முதலீட்டு குறிப்பு", "குறிப்புகள்", "டிப்ஸ் சொல்லுங்க", "டிப்ஸ் என்ன",
+        "டிரேடிங் டிப்ஸ்", "பங்குச்சந்தை டிப்ஸ்", "ஸ்டாக் டிப்ஸ்",
+        "टिप्स", "सलाह", "सुझाव", "ट्रेडिंग टिप्स", "इन्वेस्टिंग टिप्स", "शेयर मार्केट टिप्स", "मार्केट टिप्स"
+    ]
+    is_tips = False
+    for p in tips_patterns:
+        if not p.isascii() or " " in p:
+            if p in lower:
+                is_tips = True
+                break
+        else:
+            if re.search(r"\b" + re.escape(p) + r"\b", lower):
+                is_tips = True
+                break
+
+    if is_tips:
+        target_sym = None
+        if extracted_symbols:
+            target_sym = extracted_symbols[0]
+        elif any(w in lower for w in ["this stock", "இந்த stock", "inda stock", "yeh stock"]):
+            target_sym = active_symbol or "TCS.NS"
+
+        return {
+            "intent": "STOCK_TIPS",
+            "primary_symbol": target_sym,
+            "secondary_symbol": None,
+            "symbols": extracted_symbols,
+            "timeframe": "1y",
+            "raw_query": cleaned
+        }
+
+    # 7. Check for Buy / Sell / Investment setup
     buy_sell_patterns = [
         "buy", "sell", "vaangalaama", "vangalama", "vaanga", "வாங்கலாமா", "வாங்க",
         "kharide", "kharidna", "kharidun", "invest pannalaama", "should i buy",
@@ -291,9 +336,9 @@ def classify_intent(text: str, active_symbol: Optional[str] = None) -> Dict[str,
         "stock", "stocks", "share", "shares", "invest", "investing", "investment", "market", "markets",
         "bullish", "bearish", "trade", "trading", "price", "nifty", "sensex", "nasdaq", "dow",
         "dividend", "pe ratio", "p/e", "eps", "target", "support", "resistance", "rsi", "indicator",
-        "chart", "fall", "drop", "crash", "rally", "gain", "loss", "profit",
-        "பங்கு", "பங்குகள்", "சந்தை", "முதலீடு", "விலை", "லாபம்",
-        "शेयर", "बाजार", "मार्केट", "निवेश", "मुनाफा"
+        "chart", "fall", "drop", "crash", "rally", "gain", "loss", "profit", "tip", "tips",
+        "பங்கு", "பங்குகள்", "சந்தை", "முதலீடு", "விலை", "லாபம்", "டிப்ஸ்",
+        "शेयर", "बाजार", "मार्केट", "निवेश", "मुनाफा", "टिप्स"
     ]
     has_finance_terms = False
     for k in financial_keywords:

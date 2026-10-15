@@ -1,38 +1,38 @@
 /* ==========================================================================
-   StockMind AI — 3D White & Purple Premium Chatbot Interface
+   StockMind AI — Modern Logo-Based Theme (Electric Blue & Royal Indigo)
    ========================================================================== */
 
 :root {
-    /* Purple Palette */
-    --purple-50:  #FAF5FF;
-    --purple-100: #F3E8FF;
-    --purple-200: #E9D5FF;
-    --purple-300: #D8B4FE;
-    --purple-400: #C084FC;
-    --purple-500: #A855F7;
-    --purple-600: #9333EA;
-    --purple-700: #7C3AED;
-    --purple-800: #6D28D9;
-    --purple-900: #4C1D95;
+    /* Logo-Based Palette: Electric Blue & Royal Indigo */
+    --purple-50:  #F0F7FF;
+    --purple-100: #E0F2FE;
+    --purple-200: #BAE6FD;
+    --purple-300: #7DD3FC;
+    --purple-400: #38BDF8;
+    --purple-500: #0284C7;
+    --purple-600: #0072F5;
+    --purple-700: #1D4ED8;
+    --purple-800: #1E40AF;
+    --purple-900: #172554;
 
     /* Base */
-    --bg-app:      #FAFAFA;
+    --bg-app:      #F8FAFC;
     --bg-card:     #FFFFFF;
-    --bg-elevated: #F5F3FF;
-    --bg-subtle:   #FAF5FF;
+    --bg-elevated: #F0F7FF;
+    --bg-subtle:   #F8FAFC;
 
-    --border-subtle: #EDE9FE;
-    --border-hover:  #C4B5FD;
-    --border-focus:  #A855F7;
+    --border-subtle: #E2E8F0;
+    --border-hover:  #93C5FD;
+    --border-focus:  #0072F5;
 
-    --text-primary:   #1E1B4B;
-    --text-secondary: #6D28D9;
-    --text-muted:     #A78BFA;
-    --text-body:      #374151;
+    --text-primary:   #0F172A;
+    --text-secondary: #0369A1;
+    --text-muted:     #64748B;
+    --text-body:      #334155;
 
-    /* Legacy compat */
-    --brand-blue: #7C3AED;
-    --brand-blue-soft: #F3E8FF;
+    /* Logo Brand Blue */
+    --brand-blue: #0072F5;
+    --brand-blue-soft: #EFF6FF;
     --accent-green: #10B981;
     --accent-green-bg: #ECFDF5;
     --accent-green-text: #065F46;
@@ -43,11 +43,11 @@
     --accent-amber-bg: #FFFBEB;
     --accent-amber-text: #92400E;
 
-    /* 3D Shadows with purple tint */
-    --shadow-soft-sm: 0 2px 0px rgba(109,40,217,0.12), 0 4px 12px rgba(139,92,246,0.09), 0 1px 3px rgba(0,0,0,0.05);
-    --shadow-soft-md: 0 4px 0px rgba(109,40,217,0.16), 0 10px 30px rgba(139,92,246,0.12), 0 4px 8px rgba(0,0,0,0.06);
-    --shadow-soft-lg: 0 6px 0px rgba(109,40,217,0.18), 0 20px 48px rgba(139,92,246,0.14), 0 8px 20px rgba(0,0,0,0.07);
-    --shadow-float:   0 8px 0px rgba(109,40,217,0.15), 0 24px 48px rgba(139,92,246,0.16), 0 4px 12px rgba(0,0,0,0.05);
+    /* 3D Shadows with logo-tinted blue/indigo */
+    --shadow-soft-sm: 0 2px 0px rgba(0,114,245,0.08), 0 4px 12px rgba(29,78,216,0.06), 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-soft-md: 0 4px 0px rgba(0,114,245,0.12), 0 10px 28px rgba(29,78,216,0.09), 0 4px 8px rgba(0,0,0,0.05);
+    --shadow-soft-lg: 0 6px 0px rgba(0,114,245,0.15), 0 20px 48px rgba(29,78,216,0.12), 0 8px 20px rgba(0,0,0,0.06);
+    --shadow-float:   0 8px 0px rgba(0,114,245,0.14), 0 24px 48px rgba(29,78,216,0.14), 0 4px 12px rgba(0,0,0,0.05);
 
     --radius-sm: 10px;
     --radius-md: 14px;
@@ -158,7 +158,7 @@ body {
     padding: 1px 7px;
     border-radius: var(--radius-full);
     margin-left: 4px;
-    box-shadow: 0 2px 6px rgba(139,92,246,0.35);
+    box-shadow: 0 2px 6px rgba(0,114,245,0.35);
 }
 
 .brand-sub {
@@ -307,7 +307,7 @@ body {
     object-fit: contain;
     border-radius: 20px;
     display: block;
-    filter: drop-shadow(0 4px 12px rgba(109, 40, 217, 0.12));
+    filter: drop-shadow(0 4px 12px rgba(0, 114, 245, 0.14));
 }
 .welcome-logo::before {
     content: '';
@@ -315,7 +315,7 @@ body {
     bottom: -10px;
     left: 10%; right: 10%;
     height: 14px;
-    background: rgba(139,92,246,0.2);
+    background: rgba(0, 114, 245, 0.2);
     border-radius: 50%;
     filter: blur(8px);
     animation: shadowPulse 4s ease-in-out infinite;
