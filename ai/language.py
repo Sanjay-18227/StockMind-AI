@@ -18,9 +18,11 @@ TANGLISH_KEYWORDS = {
     "ippo", "epdi", "iruku", "irukku", "mela", "keela", "poguma", "pogum", "vaangalaama",
     "vangalama", "vaanga", "vanga", "enna", "aachu", "aayiduchi", "yen", "panna", "parkalaam",
     "paakalaam", "romba", "nalla", "kudunga", "thanga", "theriyuma", "solunga", "solra",
-    "konjam", "paathu", "mudiyuma", "illa", "illai", "padu", "iruntha", "irundha", "aana",
+    "sollu", "konjam", "paathu", "mudiyuma", "illa", "illai", "padu", "iruntha", "irundha", "aana",
     "aanal", "valarum", "eri", "irangi", "eruma", "down aachu", "down aaguthu", "down aaga",
-    "reason enna", "innikku", "innaikku", "naalaikku", "epadi", "irukudhu", "nalladha"
+    "reason enna", "innikku", "innaikku", "naalaikku", "epadi", "irukudhu", "nalladha",
+    "adhigam", "adhigama", "adhigamaa", "panradha", "pannalama", "edukalama", "vaangalama",
+    "risk ah", "down ah", "up ah", "chance epdi", "situation", "paravala", "mattum"
 }
 
 # Common Hinglish conversational keywords
@@ -28,7 +30,7 @@ HINGLISH_KEYWORDS = {
     "kaisa", "kaisi", "kaise", "hai", "hain", "kya", "hoga", "hogi", "gir", "gaya", "gayi",
     "badhega", "badhegi", "kharide", "kharidna", "kharidun", "beche", "bechna", "bechun",
     "aaj", "kal", "batao", "bataiye", "kyun", "kyu", "chal", "raha", "rahi", "lag", "raha",
-    "upar", "niche", "chahiye", "thoda", "bahut", "accha", "bura"
+    "upar", "niche", "chahiye", "thoda", "bahut", "accha", "bura", "girega", "samjhao", "bhai"
 }
 
 # European vocabulary markers
@@ -172,10 +174,27 @@ def detect_language(text: str) -> str:
         cache.set(cache_key, "ko", ttl=3600)
         return "ko"
 
+    # Check for explicit language switches
+    lower_text = cleaned.lower()
+    if any(p in lower_text for p in ["in english", "explain in english", "now explain in english", "english-la sollu", "english me"]):
+        cache.set(cache_key, "en", ttl=3600)
+        return "en"
+    if any(p in lower_text for p in ["in tamil", "tamil-la sollu", "tamil la explain", "தமிழுக்கு"]):
+        cache.set(cache_key, "ta", ttl=3600)
+        return "ta"
+    if any(p in lower_text for p in ["in tanglish", "tanglish-la sollu", "tanglish la"]):
+        cache.set(cache_key, "tanglish", ttl=3600)
+        return "tanglish"
+    if any(p in lower_text for p in ["in hindi", "hindi me batao", "hindi mein", "हिंदी में"]):
+        cache.set(cache_key, "hi", ttl=3600)
+        return "hi"
+    if any(p in lower_text for p in ["in hinglish", "hinglish me batao", "hinglish mein"]):
+        cache.set(cache_key, "hinglish", ttl=3600)
+        return "hinglish"
+
     # 2. Tokenize words for Latin Script dialects & European languages
     words = re.findall(r"[a-zA-Z]+", cleaned.lower())
     word_set = set(words)
-    lower_text = cleaned.lower()
 
     # Tanglish check
     tanglish_matches = word_set.intersection(TANGLISH_KEYWORDS)

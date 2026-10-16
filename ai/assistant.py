@@ -651,6 +651,405 @@ def format_market_overview_response(data: Dict[str, Any], lang: str) -> str:
         return _finalize_response("\n".join(lines), lang)
 
 
+def format_why_explanation_response(analysis: Dict[str, Any], lang: str) -> str:
+    """
+    Explain concisely WHY the current conclusion (bullish, bearish, neutral) was reached.
+    Focuses on moving averages, RSI momentum, MACD, volume, and support/resistance
+    WITHOUT repeating the whole price card or complete analysis.
+    """
+    q = analysis["quote"]
+    ind = analysis["indicators"]["latest"]
+    sr = analysis["support_resistance"]
+    sym = q["symbol"]
+    name = q["name"]
+    trend = ind["trend_bias"]
+    rsi = ind["rsi_14"]
+    curr = format_currency(q["current_price"], q["currency_symbol"])
+    sup = format_currency(sr["nearest_support"], q["currency_symbol"])
+    res = format_currency(sr["nearest_resistance"], q["currency_symbol"])
+    vol_ratio = ind.get("volume_ratio", 1.0)
+    ma_summary = ind.get("ma_summary", "trading near moving averages")
+
+    if lang == "tanglish":
+        return (
+            f"### ❓ {name} ({sym}) — முடிவுக்கான காரணம் (Why {trend}?)\n\n"
+            f"**{trend}** முடிவுக்கான முக்கிய காரணங்கள்:\n\n"
+            f"• **Moving Averages:** Price தற்போது {ma_summary}.\n"
+            f"• **RSI Momentum:** RSI {rsi:.1f}-ல் உள்ளது ({ind['rsi_signal']}) — {ind['rsi_desc']}.\n"
+            f"• **MACD Trend:** {ind['macd_desc']}.\n"
+            f"• **Volume Strength:** வர்த்தக அளவு 20-day average-ஐ விட **{vol_ratio:.1f}x** {'அதிகமாக' if vol_ratio > 1.2 else 'சராசரியாக'} உள்ளது.\n"
+            f"• **Key Support Floor:** முதன்மை support **{sup}** விலைக்கு நல்ல அடித்தளமாக உள்ளது.\n\n"
+            f"💡 *விலை {sup} support-ஐ உடைக்காதவரை இந்த {trend.lower()} கட்டமைப்பு தொடர அதிக வாய்ப்புள்ளது.*"
+        )
+    elif lang == "ta":
+        return (
+            f"### ❓ {name} ({sym}) — போக்கின் பின்னணி (Why {trend}?)\n\n"
+            f"**{trend}** போக்கு உருவானதற்கான காரணங்கள்:\n\n"
+            f"• **நகரும் சராசரிகள் (Moving Averages):** விலை தற்போது {ma_summary} நகர்கிறது.\n"
+            f"• **RSI குறியீடு:** {rsi:.1f} ({ind['rsi_signal']}) — {ind['rsi_desc']}.\n"
+            f"• **MACD குறிகாட்டி:** {ind['macd_desc']}.\n"
+            f"• **பரிவர்த்தனை அளவு:** சராசரியை விட **{vol_ratio:.1f}x** வர்த்தகமாகிறது.\n"
+            f"• **ஆதரவு நிலை (Support):** **{sup}** ஆதரவு விலையை தாங்கி நிற்கிறது."
+        )
+    elif lang in ["hi", "hinglish"]:
+        return (
+            f"### ❓ {name} ({sym}) — निष्कर्ष का कारण (Why {trend}?)\n\n"
+            f"**{trend}** रुख का मुख्य कारण:\n\n"
+            f"• **Moving Averages:** शेयर भाव वर्तमान में {ma_summary} है।\n"
+            f"• **RSI मोमेंटम:** RSI {rsi:.1f} ({ind['rsi_signal']}) स्तर पर है — {ind['rsi_desc']}।\n"
+            f"• **MACD:** {ind['macd_desc']}।\n"
+            f"• **वॉल्यूम गतिविधि:** वॉल्यूम 20-दिन के औसत से **{vol_ratio:.1f}x** है।\n"
+            f"• **सपोर्ट लेवल:** मुख्य सपोर्ट **{sup}** पर बना हुआ है।"
+        )
+    else:
+        text = (
+            f"### ❓ Why {trend} for {name} ({sym})?\n\n"
+            f"The **{trend}** bias mainly comes from:\n\n"
+            f"• **Moving Average Alignment:** Price is trading **{ma_summary}**.\n"
+            f"• **Momentum Indicator (RSI):** RSI is currently at **{rsi:.1f}** ({ind['rsi_signal']}) — {ind['rsi_desc']}.\n"
+            f"• **MACD Dynamics:** {ind['macd_desc']}.\n"
+            f"• **Volume Confirmation:** Volume is trading at **{vol_ratio:.1f}x** the 20-day average.\n"
+            f"• **Structural Support:** Technical support floor holds firmly at **{sup}** while primary resistance is at **{res}**."
+        )
+        return _finalize_response(text, lang)
+
+
+def format_deep_technical_response(analysis: Dict[str, Any], lang: str) -> str:
+    """
+    Expands the technical depth using existing calculated data WITHOUT repeating the original answer.
+    Displays comprehensive RSI, MACD, Moving Averages, Bollinger Bands, ATR, Volatility,
+    Volume ratio, Beta, Max Drawdown, and Support/Resistance breakdown.
+    """
+    q = analysis["quote"]
+    ind = analysis["indicators"]["latest"]
+    sr = analysis["support_resistance"]
+    st = analysis["statistics"]
+    rk = analysis["risk"]
+    sym = q["symbol"]
+    name = q["name"]
+    curr = format_currency(q["current_price"], q["currency_symbol"])
+    sup = format_currency(sr["nearest_support"], q["currency_symbol"])
+    res = format_currency(sr["nearest_resistance"], q["currency_symbol"])
+    sup2 = format_currency(sr.get("secondary_support", 0), q["currency_symbol"])
+    res2 = format_currency(sr.get("secondary_resistance", 0), q["currency_symbol"])
+
+    sma20 = format_currency(ind.get("sma_20", 0), q["currency_symbol"])
+    sma50 = format_currency(ind.get("sma_50", 0), q["currency_symbol"])
+    ema20 = format_currency(ind.get("ema_20", 0), q["currency_symbol"])
+    bb_u = format_currency(ind.get("bollinger_upper", 0), q["currency_symbol"])
+    bb_l = format_currency(ind.get("bollinger_lower", 0), q["currency_symbol"])
+    atr = format_currency(ind.get("atr_14", 0), q["currency_symbol"])
+
+    if lang == "tanglish":
+        return f"""### 📊 {name} ({sym}) — ஆழமான தொழில்நுட்ப விவரங்கள் (Deep Technicals)
+
+• **தற்போதைய விலை:** **{curr}** | **Trend:** **{ind['trend_bias']}**
+
+#### 1. நகரும் சராசரிகள் (Moving Averages & Trend Alignment):
+• **20-Day SMA:** {sma20} | **50-Day SMA:** {sma50}
+• **20-Day EMA:** {ema20} (Fast Exponential Average)
+• **Alignment Status:** Price தற்போது {ind['ma_summary']}.
+
+#### 2. Momentum & Oscillators (RSI & MACD):
+• **RSI (14):** **{ind['rsi_14']:.1f}** ({ind['rsi_signal']}) — {ind['rsi_desc']}
+• **MACD:** Line {ind['macd']:.2f} | Signal {ind['macd_signal']:.2f} | Hist {ind['macd_hist']:.2f}
+• **MACD Interpretation:** {ind['macd_desc']}
+
+#### 3. Volatility & Bands:
+• **Bollinger Upper Band:** {bb_u} | **Lower Band:** {bb_l}
+• **Bollinger Bandwidth:** {ind.get('bollinger_bandwidth_pct', 0):.1f}%
+• **Average True Range (ATR 14):** {atr} ({ind.get('atr_percent', 0):.1f}% daily range)
+• **Volume Ratio:** {ind.get('volume_ratio', 1.0):.2f}x 20-day average
+
+#### 4. முக்கிய வர்த்தக நிலைகள் (Support, Resistance & Breakouts):
+• **Nearest Support (Floor):** **{sup}** (Secondary: {sup2})
+• **Nearest Resistance (Ceiling):** **{res}** (Secondary: {res2})
+• **Breakout Zone:** {sr.get('breakout_zone', 'N/A')}
+• **Breakdown Zone:** {sr.get('breakdown_zone', 'N/A')}
+
+#### 5. இடர் & புள்ளிவிவரங்கள் (Risk & Statistical Metrics):
+• **Risk Rating:** {rk['risk_level']} (Score: {rk['risk_score']}/100)
+• **Market Beta:** {st.get('beta', 1.0):.2f} | **Annual Volatility:** {st.get('annual_volatility_pct', 0):.1f}%
+• **Max Historical Drawdown:** {st.get('max_drawdown_pct', 0):.1f}%"""
+
+    elif lang in ["hi", "hinglish"]:
+        return f"""### 📊 {name} ({sym}) — गहन तकनीकी विश्लेषण (Deep Technicals)
+
+• **Current Price:** **{curr}** | **Primary Trend:** **{ind['trend_bias']}**
+
+#### 1. मूविंग एवरेज (Moving Averages):
+• **20-Day SMA:** {sma20} | **50-Day SMA:** {sma50} | **20-Day EMA:** {ema20}
+• **स्थिति:** भाव अभी {ind['ma_summary']} है।
+
+#### 2. मोमेंटम इंडिकेटर्स (RSI & MACD):
+• **RSI (14):** **{ind['rsi_14']:.1f}** ({ind['rsi_signal']}) — {ind['rsi_desc']}
+• **MACD:** Line {ind['macd']:.2f} | Signal {ind['macd_signal']:.2f} | Histogram {ind['macd_hist']:.2f}
+• **MACD स्टेटस:** {ind['macd_desc']}
+
+#### 3. वोलैटिलिटी और बैंड्स (Volatility & Bands):
+• **Bollinger Bands:** Upper {bb_u} | Lower {bb_l} (Bandwidth: {ind.get('bollinger_bandwidth_pct', 0):.1f}%)
+• **ATR (14):** {atr} ({ind.get('atr_percent', 0):.1f}% daily swing)
+• **वॉल्यूम रेशियो:** {ind.get('volume_ratio', 1.0):.2f}x (औसत के मुकाबले)
+
+#### 4. सपोर्ट और रेजिस्टेंस (Key Support & Resistance):
+• **प्रमुख सपोर्ट (Support):** **{sup}** (Secondary: {sup2})
+• **प्रमुख रेजिस्टेंस (Resistance):** **{res}** (Secondary: {res2})
+• **ब्रेकआउट जोन:** {sr.get('breakout_zone', 'N/A')}
+
+#### 5. रिस्क और स्टेटिस्टिक्स (Risk & Statistics):
+• **रिस्क लेवल:** {rk['risk_level']} ({rk['risk_score']}/100)
+• **बीटा (Beta):** {st.get('beta', 1.0):.2f} | **सालाना वोलैटिलिटी:** {st.get('annual_volatility_pct', 0):.1f}%
+• **ऐतिहासिक मैक्स ड्राडाउन:** {st.get('max_drawdown_pct', 0):.1f}%"""
+
+    else:
+        text = f"""### 📊 {name} ({sym}) — Deep Technical Expansion
+
+| Technical Indicator | Reading | Interpretation / Context |
+| :--- | :--- | :--- |
+| **Current Price** | **{curr}** | Primary Trend: **{ind['trend_bias']}** |
+| **RSI (14)** | **{ind['rsi_14']:.1f}** | {ind['rsi_signal']} ({ind['rsi_desc']}) |
+| **MACD (12, 26, 9)** | Line: {ind['macd']:.2f} / Sig: {ind['macd_signal']:.2f} | {ind['macd_desc']} |
+| **20-Day SMA** | {sma20} | Short-term trend benchmark |
+| **50-Day SMA** | {sma50} | Medium-term institutional hurdle |
+| **20-Day EMA** | {ema20} | Responsive weighted momentum line |
+| **Bollinger Bands** | Upper: {bb_u} / Lower: {bb_l} | Bandwidth: {ind.get('bollinger_bandwidth_pct', 0):.1f}% |
+| **ATR (14)** | {atr} | Daily range volatility: {ind.get('atr_percent', 0):.1f}% |
+| **Volume Ratio** | {ind.get('volume_ratio', 1.0):.2f}x | Normalized against 20-day volume MA |
+| **Primary Support** | **{sup}** | Secondary floor: {sup2} |
+| **Primary Resistance** | **{res}** | Secondary ceiling: {res2} |
+| **Breakout Trigger** | {sr.get('breakout_zone', 'N/A')} | Upside continuation threshold |
+| **Market Beta** | {st.get('beta', 1.0):.2f} | Relative sensitivity to broad market index |
+| **Max Drawdown** | {st.get('max_drawdown_pct', 0):.1f}% | Worst historical peak-to-trough pullback |
+
+💡 *This expanded technical matrix was calculated from latest exchange closing and tick data.*"""
+        return _finalize_response(text, lang)
+
+
+def format_how_it_works_response(analysis: Dict[str, Any], lang: str) -> str:
+    """
+    Explain the mathematical and quantitative methodology behind the current result.
+    Does NOT repeat current price, whole analysis, or prediction tables.
+    """
+    if lang == "tanglish":
+        return """### ⚙️ StockMind AI — இது எவ்வாறு கணக்கிடப்படுகிறது? (How It Works)
+
+StockMind AI-ன் கணிப்பு மற்றும் ஆய்வுகள் கீழ்க்கண்ட 4 முக்கிய நிலைகளில் கணக்கிடப்படுகின்றன:
+
+1. **நேரடி சந்தை தரவு (Live Market Data Fetching):**
+   Exchange-லிருந்து real-time OHLCV (Open, High, Low, Close, Volume) தரவுகள் எடுக்கப்பட்டு சரிபார்க்கப்படுகின்றன.
+
+2. **தொழில்நுட்ப குறிகாட்டிகள் (Quantitative Feature Engineering):**
+   • **Moving Averages (SMA 20, SMA 50, EMA 20):** போக்கின் திசையை அறிய கணக்கிடப்படுகிறது.
+   • **RSI (Relative Strength Index):** 14-காலக்கட்ட வேகத்தை 0-100 அளவீட்டில் அளவிடுகிறது.
+   • **MACD:** இரு நகரும் சராசரிகளுக்கிடையேயான வேக மாறுபாட்டை கணக்கிடுகிறது.
+   • **Bollinger Bands & ATR:** சந்தையின் ஏற்ற இறக்கத்தை (Volatility) அளவிடுகிறது.
+
+3. **Machine Learning Directional Model:**
+   கடந்த கால historical patterns மற்றும் walk-forward validation அடிப்படையில், அடுத்த 1-நாள், 5-நாள் மற்றும் 21-நாள் விலை இலக்குகள் மற்றும் confidence score கணக்கிடப்படுகிறது.
+
+4. **இடர் மற்றும் ஆதரவு நிலைகள் (Risk & Level Scoring):**
+   Beta, Max Drawdown மற்றும் Volume Profile கொண்டு Risk Score (0-100) நிர்ணயிக்கப்படுகிறது."""
+
+    elif lang in ["hi", "hinglish"]:
+        return """### ⚙️ StockMind AI — यह कैसे काम करता है? (How It Works)
+
+StockMind AI का विश्लेषण इन 4 प्रमुख चरणों पर आधारित है:
+
+1. **लाइव मार्केट डेटा संग्रह:**
+   एक्सचेंज से वास्तविक समय का OHLCV (ओपन, हाई, लो, क्लोज, वॉल्यूम) डेटा प्राप्त किया जाता है।
+
+2. **क्वांटिटेटिव इंडिकेटर गणना:**
+   • **Moving Averages:** 20-दिन और 50-दिन के औसत से ट्रेंड की दिशा तय होती है।
+   • **RSI & MACD:** मोमेंटम और ओवरबॉट/ओवरसोल्ड स्थिति की पहचान करते हैं।
+   • **Bollinger Bands & ATR:** कीमत के उतार-चढ़ाव (volatility) का मापन करते हैं।
+
+3. **मशीन लर्निंग प्रेडिक्शन मॉडल:**
+   वॉक-फॉरवर्ड वैलिडेशन और ट्रेंड फीचर्स का मूल्यांकन करके 1-दिन, 5-दिन और 21-दिन के अनुमानित लक्ष्य निकाले जाते हैं।
+
+4. **मल्टी-फैक्टर रिस्क एनालिसिस:**
+   बीटा (Beta), मैक्सिमम ड्राडाउन और सपोर्ट/रेजिस्टेंस से रिस्क रेटिंग निर्धारित होती है।"""
+
+    else:
+        return """### ⚙️ How It Works — Quantitative Methodology
+
+StockMind AI synthesizes multi-factor algorithmic analytics and machine learning:
+
+1. **Market Data Acquisition:**
+   Pulls live exchange-calibrated OHLCV time series and validates data hygiene.
+
+2. **Technical Feature Engineering:**
+   • **Trend Filters:** Dual moving-average alignment (20-day SMA, 50-day SMA, and 20-day EMA) determines structural market regime.
+   • **Momentum Dynamics:** 14-period Wilder's RSI and MACD (12, 26, 9) quantify directional momentum and divergence.
+   • **Volatility Envelope:** 20-day Bollinger Bands (2.0σ) and 14-day Average True Range (ATR) gauge volatility compression and expansion.
+
+3. **Calibrated Machine Learning Trajectory:**
+   A multi-horizon predictive pipeline evaluates technical features against historical walk-forward regimes to produce projected 1-day, 5-day, and 21-day target cones with empirical confidence levels.
+
+4. **Multi-Factor Risk & Structural Levels:**
+   Support and resistance pivots identify high-probability reversal boundaries, while historical drawdown and beta calibrate the risk rating."""
+
+
+def format_risk_explanation_response(analysis: Dict[str, Any], lang: str) -> str:
+    """
+    Focused explanation of the risk rating and key vulnerabilities.
+    """
+    q = analysis["quote"]
+    st = analysis["statistics"]
+    rk = analysis["risk"]
+    ind = analysis["indicators"]["latest"]
+    sr = analysis["support_resistance"]
+    sym = q["symbol"]
+    name = q["name"]
+    sup = format_currency(sr["nearest_support"], q["currency_symbol"])
+
+    if lang == "tanglish":
+        return (
+            f"### 🛡️ {name} ({sym}) — இடர் ஆய்வு (Risk Assessment)\n\n"
+            f"• **ஒட்டுமொத்த இடர் நிலை:** **{rk['risk_level']}** (Score: **{rk['risk_score']}/100**)\n"
+            f"• **இடருக்கான முக்கிய காரணம்:** {rk['explanation']}\n"
+            f"• **வரலாற்று அதிகபட்ச வீழ்ச்சி (Max Drawdown):** **{st.get('max_drawdown_pct', 0):.1f}%**\n"
+            f"• **வருடாந்திர ஏற்ற இறக்கம் (Annual Volatility):** **{st.get('annual_volatility_pct', 0):.1f}%**\n"
+            f"• **Market Beta:** **{st.get('beta', 1.0):.2f}** ({'Nifty-ஐ விட அதிக ஏற்ற இறக்கம் காட்டும்' if st.get('beta', 1.0) > 1.15 else 'சந்தைக்கேற்ப நிலையான வேகம்'})\n"
+            f"• **பாதுகாப்பு எல்லை (Safety Floor):** முதன்மை support **{sup}** பகுதியில் உள்ளது."
+        )
+    elif lang in ["hi", "hinglish"]:
+        return (
+            f"### 🛡️ {name} ({sym}) — जोखिम विश्लेषण (Risk Assessment)\n\n"
+            f"• **रिस्क रेटिंग:** **{rk['risk_level']}** (स्कोर: **{rk['risk_score']}/100**)\n"
+            f"• **मूल्यांकन:** {rk['explanation']}\n"
+            f"• **ऐतिहासिक अधिकतम गिरावट (Max Drawdown):** **{st.get('max_drawdown_pct', 0):.1f}%**\n"
+            f"• **सालाना वोलैटिलिटी:** **{st.get('annual_volatility_pct', 0):.1f}%**\n"
+            f"• **मार्केट बीटा (Beta):** **{st.get('beta', 1.0):.2f}**\n"
+            f"• **सुरक्षा स्तर (Support Floor):** **{sup}**"
+        )
+    else:
+        text = (
+            f"### 🛡️ Risk Assessment for {name} ({sym})\n\n"
+            f"• **Overall Risk Rating:** **{rk['risk_level']}** (Quant Score: **{rk['risk_score']}/100**)\n"
+            f"• **Primary Risk Factors:** {rk['explanation']}\n"
+            f"• **Historical Peak-to-Trough Drawdown:** **{st.get('max_drawdown_pct', 0):.1f}%**\n"
+            f"• **Annualized Price Volatility:** **{st.get('annual_volatility_pct', 0):.1f}%**\n"
+            f"• **Systematic Market Beta:** **{st.get('beta', 1.0):.2f}**\n"
+            f"• **Technical Cushion:** Nearest defensive support is anchored at **{sup}**."
+        )
+        return _finalize_response(text, lang)
+
+
+def format_support_resistance_response(analysis: Dict[str, Any], lang: str) -> str:
+    """
+    Focused breakdown of support floors, resistance ceilings, and breakout boundaries.
+    """
+    q = analysis["quote"]
+    sr = analysis["support_resistance"]
+    sym = q["symbol"]
+    name = q["name"]
+    curr = format_currency(q["current_price"], q["currency_symbol"])
+    sup1 = format_currency(sr["nearest_support"], q["currency_symbol"])
+    sup2 = format_currency(sr.get("secondary_support", 0), q["currency_symbol"])
+    res1 = format_currency(sr["nearest_resistance"], q["currency_symbol"])
+    res2 = format_currency(sr.get("secondary_resistance", 0), q["currency_symbol"])
+
+    if lang == "tanglish":
+        return (
+            f"### 🎯 {name} ({sym}) — முக்கிய வர்த்தக நிலைகள் (Support & Resistance)\n\n"
+            f"• **Current Price:** **{curr}**\n\n"
+            f"• **Support Floors (கீழ் தாங்கும் நிலைகள்):**\n"
+            f"  - **Primary Support:** **{sup1}** *(விலை இறங்கினால் buyers உள்ளே வர வாய்ப்புள்ள இடம்)*\n"
+            f"  - **Secondary Support:** **{sup2}** *(ஆழமான இறக்கத்தை தடுக்கும் வலுவான நிலை)*\n\n"
+            f"• **Resistance Ceilings (மேல் தடை நிலைகள்):**\n"
+            f"  - **Primary Resistance:** **{res1}** *(விலை ஏறும்போது தற்காலிக விற்பனை அழுத்தம் வரலாம்)*\n"
+            f"  - **Secondary Resistance:** **{res2}** *(அடுத்த முக்கிய இலக்கு)*\n\n"
+            f"• **Breakout Trigger:** {sr.get('breakout_zone', 'N/A')}\n"
+            f"• **Breakdown Trigger:** {sr.get('breakdown_zone', 'N/A')}"
+        )
+    elif lang in ["hi", "hinglish"]:
+        return (
+            f"### 🎯 {name} ({sym}) — सपोर्ट और रेजिस्टेंस लेवल्स\n\n"
+            f"• **Current Price:** **{curr}**\n\n"
+            f"• **सपोर्ट लेवल्स (Support Floor):**\n"
+            f"  - **Primary Support:** **{sup1}**\n"
+            f"  - **Secondary Support:** **{sup2}**\n\n"
+            f"• **रेजिस्टेंस लेवल्स (Resistance Ceiling):**\n"
+            f"  - **Primary Resistance:** **{res1}**\n"
+            f"  - **Secondary Resistance:** **{res2}**\n\n"
+            f"• **ब्रेकआउट जोन:** {sr.get('breakout_zone', 'N/A')}"
+        )
+    else:
+        text = (
+            f"### 🎯 Support & Resistance Framework for {name} ({sym})\n\n"
+            f"• **Current Trading Price:** **{curr}**\n\n"
+            f"• **Support Levels (Downside Buffer):**\n"
+            f"  - **Primary Support Floor:** **{sup1}** *(Primary institutional demand zone)*\n"
+            f"  - **Secondary Support Base:** **{sup2}** *(Deeper structural swing low)*\n\n"
+            f"• **Resistance Levels (Upside Hurdles):**\n"
+            f"  - **Primary Resistance Ceiling:** **{res1}** *(Profit taking / supply overhead)*\n"
+            f"  - **Secondary Resistance Target:** **{res2}** *(Next expansion objective)*\n\n"
+            f"• **Breakout Zone:** **{sr.get('breakout_zone', 'N/A')}**\n"
+            f"• **Breakdown Zone:** **{sr.get('breakdown_zone', 'N/A')}**"
+        )
+        return _finalize_response(text, lang)
+
+
+def format_prediction_response(analysis: Dict[str, Any], lang: str) -> str:
+    """
+    Focused ML prediction response with multi-horizon targets.
+    """
+    q = analysis["quote"]
+    pr = analysis["prediction"]
+    sc = analysis["scenarios"]
+    sym = q["symbol"]
+    name = q["name"]
+    curr = format_currency(q["current_price"], q["currency_symbol"])
+    t1 = format_currency(pr["forecasts"]["1_day"]["target_price"], q["currency_symbol"])
+    t5 = format_currency(pr["forecasts"]["5_day"]["target_price"], q["currency_symbol"])
+    t21 = format_currency(pr["forecasts"]["21_day"]["target_price"], q["currency_symbol"])
+    ret1 = pr["forecasts"]["1_day"]["predicted_return_pct"]
+    ret5 = pr["forecasts"]["5_day"]["predicted_return_pct"]
+    ret21 = pr["forecasts"]["21_day"]["predicted_return_pct"]
+    conf = pr["confidence_score_pct"]
+    direction = pr["direction"]
+
+    if lang == "tanglish":
+        return (
+            f"### 🔮 {name} ({sym}) — AI / ML விலை கணிப்பு (Forecast)\n\n"
+            f"• **Current Price:** **{curr}** | **Directional Bias:** **{direction}**\n"
+            f"• **Model Confidence:** **{conf}%** *(Walk-forward testing அடிப்படையில் கணக்கிடப்பட்டது)*\n\n"
+            f"**விலை கணிப்பு இலக்குகள் (Projected Targets):**\n"
+            f"• **அடுத்த அமர்வு (1-Day):** **{t1}** ({ret1:+.2f}%)\n"
+            f"• **5-நாள் இலக்கு (5-Day):** **{t5}** ({ret5:+.2f}%)\n"
+            f"• **1-மாத இலக்கு (21-Day):** **{t21}** ({ret21:+.2f}%)\n\n"
+            f"• **Bullish Trigger:** {sc['bullish']['condition']} (இலக்கு: {sc['bullish']['target_zone']})\n"
+            f"• **Bearish Threshold:** {sc['bearish']['condition']}"
+        )
+    elif lang in ["hi", "hinglish"]:
+        return (
+            f"### 🔮 {name} ({sym}) — AI / ML प्रेडिक्शन (Forecast)\n\n"
+            f"• **Current Price:** **{curr}** | **प्रत्याशित दिशा:** **{direction}**\n"
+            f"• **मॉडल कॉन्फिडेंस:** **{conf}%**\n\n"
+            f"**अनुमानित लक्ष्य (Projected Targets):**\n"
+            f"• **अगला सत्र (1-Day):** **{t1}** ({ret1:+.2f}%)\n"
+            f"• **5-दिन का टारगेट:** **{t5}** ({ret5:+.2f}%)\n"
+            f"• **1-महीने का टारगेट:** **{t21}** ({ret21:+.2f}%)\n\n"
+            f"• **बुलिश परिदृश्य:** {sc['bullish']['condition']}\n"
+            f"• **बेयरिश परिदृश्य:** {sc['bearish']['condition']}"
+        )
+    else:
+        text = (
+            f"### 🔮 AI & Machine Learning Forecast for {name} ({sym})\n\n"
+            f"• **Current Price:** **{curr}**\n"
+            f"• **Projected Direction:** **{direction}**\n"
+            f"• **Model Confidence:** **{conf}%** (Derived from historical walk-forward cross-validation)\n\n"
+            f"| Forecast Horizon | Target Price | Projected Return | Uncertainty Band |\n"
+            f"| :--- | :--- | :--- | :--- |\n"
+            f"| **Next Session (1D)** | **{t1}** | {ret1:+.2f}% | ±{pr['forecasts']['1_day']['uncertainty_band_pct']:.1f}% |\n"
+            f"| **5-Day Swing** | **{t5}** | {ret5:+.2f}% | ±{pr['forecasts']['5_day']['uncertainty_band_pct']:.1f}% |\n"
+            f"| **1-Month Outlook (21D)** | **{t21}** | {ret21:+.2f}% | ±{pr['forecasts']['21_day']['uncertainty_band_pct']:.1f}% |\n\n"
+            f"• **Upside Scenario:** {sc['bullish']['condition']} targeting {sc['bullish']['target_zone']}.\n"
+            f"• **Downside Invalidation:** {sc['bearish']['condition']}."
+        )
+        return _finalize_response(text, lang)
+
+
 def format_stock_analysis_response(analysis: Dict[str, Any], intent: str, lang: str) -> str:
     """
     Format complete stock analysis response in the appropriate language and depth.
@@ -678,6 +1077,23 @@ def format_stock_analysis_response(analysis: Dict[str, Any], intent: str, lang: 
     res = format_currency(sr["nearest_resistance"], q["currency_symbol"])
 
     # 1. SPECIALIZED TARGETED RESPONSES FOR SPECIFIC INTENTS
+    if intent == "WHY_EXPLANATION":
+        return format_why_explanation_response(analysis, lang)
+
+    if intent == "DEEP_TECHNICAL":
+        return format_deep_technical_response(analysis, lang)
+
+    if intent == "HOW_IT_WORKS":
+        return format_how_it_works_response(analysis, lang)
+
+    if intent == "RISK_QUERY":
+        return format_risk_explanation_response(analysis, lang)
+
+    if intent == "SUPPORT_RESISTANCE":
+        return format_support_resistance_response(analysis, lang)
+
+    if intent == "PREDICTION_QUERY":
+        return format_prediction_response(analysis, lang)
     if intent == "STOCK_TIPS":
         return format_stock_tips_response(lang, analysis=analysis)
 

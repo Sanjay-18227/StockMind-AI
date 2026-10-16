@@ -548,19 +548,38 @@ def build_strategy_markdown(analysis: Optional[Dict[str, Any]] = None) -> str:
     base = sc.get("base", {})
     bear = sc.get("bearish", {})
 
+    def _num(v, default=0.0):
+        if v is None:
+            return default
+        if isinstance(v, (int, float)):
+            return float(v)
+        try:
+            return float(str(v).replace(",", "").replace("₹", "").replace("$", "").replace("x", "").strip())
+        except Exception:
+            return default
+
+    rr_ratio = _num(st.get('risk_reward_ratio'), 1.0)
+    res_target = _num(st.get('resistance_target'), 0.0)
+    sup_target = _num(st.get('support_target'), 0.0)
+    inv_level = _num(st.get('invalidation_level'), 0.0)
+
+    bull_target = _num(bull.get('target'), 0.0)
+    base_target = _num(base.get('target'), 0.0)
+    bear_target = _num(bear.get('target'), 0.0)
+
     return f"""
 ### 📋 Tactical Setup & Market Scenarios for {q.get('name', '')} ({q.get('symbol', '')})
 
-**Strategic Bias:** `{st.get('bias', 'Neutral')}` &nbsp;|&nbsp; **Risk/Reward Ratio:** `{st.get('risk_reward_ratio', 1.0):.2f}`
+**Strategic Bias:** `{st.get('bias', 'Neutral')}` &nbsp;|&nbsp; **Risk/Reward Ratio:** `{rr_ratio:.2f}`
 
-* **Target Resistance:** `{curr}{st.get('resistance_target', 0):,.2f}`
-* **Target Support:** `{curr}{st.get('support_target', 0):,.2f}`
-* **Model Invalidation Floor:** `{curr}{st.get('invalidation_level', 0):,.2f}`
+* **Target Resistance:** `{curr}{res_target:,.2f}`
+* **Target Support:** `{curr}{sup_target:,.2f}`
+* **Model Invalidation Floor:** `{curr}{inv_level:,.2f}`
 
 #### 🎯 Scenario Probability Matrix
-* 🟢 **Bullish Case ({bull.get('probability', 0)}% Prob):** Target `{curr}{bull.get('target', 0):,.2f}` — *{bull.get('catalyst', '')}*
-* 🟡 **Base Case ({base.get('probability', 0)}% Prob):** Target `{curr}{base.get('target', 0):,.2f}` — *{base.get('catalyst', '')}*
-* 🔴 **Bearish Case ({bear.get('probability', 0)}% Prob):** Target `{curr}{bear.get('target', 0):,.2f}` — *{bear.get('catalyst', '')}*
+* 🟢 **Bullish Case ({bull.get('probability', 0)}% Prob):** Target `{curr}{bull_target:,.2f}` — *{bull.get('catalyst', '')}*
+* 🟡 **Base Case ({base.get('probability', 0)}% Prob):** Target `{curr}{base_target:,.2f}` — *{base.get('catalyst', '')}*
+* 🔴 **Bearish Case ({bear.get('probability', 0)}% Prob):** Target `{curr}{bear_target:,.2f}` — *{bear.get('catalyst', '')}*
 
 > **Technical Reasoning:** {st.get('bias_reasoning', '')}
 > 

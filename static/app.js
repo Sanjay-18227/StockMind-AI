@@ -17,7 +17,8 @@ const state = {
     categories: {},
     activeModalCategory: "all",
     selectedAutocompleteIndex: -1,
-    currentChatId: Date.now().toString()
+    currentChatId: Date.now().toString(),
+    isSubmitting: false
 };
 
 // DOM Elements
@@ -134,7 +135,7 @@ function setupEventHandlers() {
     newChatBtn.addEventListener("click", resetChat);
     navHomeBtn.addEventListener("click", resetChat);
 
-    // Header Back button handler (closes active modals, maximized charts, or resets back to welcome)
+    // Header Back button handler (closes active modals, maximized charts, or smoothly scrolls to top)
     if (navBackBtn) {
         navBackBtn.addEventListener("click", () => {
             if (companiesModal && companiesModal.style.display !== "none") {
@@ -150,15 +151,7 @@ function setupEventHandlers() {
                 restorePinchChart(maximizedChart);
                 return;
             }
-            if (messageList && messageList.children.length > 0) {
-                resetChat();
-                return;
-            }
-            if (window.history.length > 1) {
-                window.history.back();
-            } else {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-            }
+            window.scrollTo({ top: 0, behavior: "smooth" });
         });
     }
 
@@ -425,8 +418,12 @@ function resetAllAudioButtons() {
 
 // Submit User Query
 async function submitUserQuery() {
+    if (state.isSubmitting) return;
     const query = userInput.value.trim();
     if (!query && !state.selectedFile) return;
+
+    state.isSubmitting = true;
+    if (sendBtn) sendBtn.disabled = true;
 
     // Hide welcome screen
     welcomeScreen.style.display = "none";
@@ -470,6 +467,9 @@ async function submitUserQuery() {
     } catch (err) {
         removeLoadingMessage(loadingId);
         appendErrorMessage(err.message || "Failed to process query. Please try again.");
+    } finally {
+        state.isSubmitting = false;
+        if (sendBtn) sendBtn.disabled = false;
     }
 }
 
