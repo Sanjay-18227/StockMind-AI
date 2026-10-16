@@ -41,6 +41,11 @@ const removeAttachmentBtn = document.getElementById("remove-attachment-btn");
 const headerTickerStrip = document.getElementById("header-ticker-strip");
 const marketOverviewBtn = document.getElementById("market-overview-btn");
 const newChatBtn = document.getElementById("new-chat-btn");
+const appSidebar = document.getElementById("app-sidebar");
+const sidebarToggleBtn = document.getElementById("sidebar-toggle-btn");
+const sidebarCloseBtn = document.getElementById("sidebar-close-btn");
+const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+const sidebarBrandBtn = document.getElementById("sidebar-brand-btn");
 const navHomeBtn = document.getElementById("nav-home-btn");
 const companiesModalBtn = document.getElementById("companies-modal-btn");
 const browseCompaniesBtn = document.getElementById("browse-companies-btn");
@@ -132,12 +137,43 @@ function setupEventHandlers() {
         state.activeTimeframe = "1y";
         state.currentChatId = Date.now().toString();
     };
-    newChatBtn.addEventListener("click", resetChat);
-    navHomeBtn.addEventListener("click", resetChat);
+    // Left Sidebar Mobile Drawer Handlers
+    const closeSidebarDrawer = () => {
+        if (appSidebar) appSidebar.classList.remove("sidebar-open");
+        if (sidebarBackdrop) sidebarBackdrop.classList.remove("active");
+    };
 
-    // Header Back button handler (closes active modals, maximized charts, or smoothly scrolls to top)
+    if (sidebarToggleBtn && appSidebar) {
+        sidebarToggleBtn.addEventListener("click", () => {
+            appSidebar.classList.add("sidebar-open");
+            if (sidebarBackdrop) sidebarBackdrop.classList.add("active");
+        });
+    }
+
+    if (sidebarCloseBtn) sidebarCloseBtn.addEventListener("click", closeSidebarDrawer);
+    if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", closeSidebarDrawer);
+    if (sidebarBrandBtn) {
+        sidebarBrandBtn.addEventListener("click", () => {
+            resetChat();
+            closeSidebarDrawer();
+        });
+    }
+
+    if (newChatBtn) {
+        newChatBtn.addEventListener("click", () => {
+            resetChat();
+            closeSidebarDrawer();
+        });
+    }
+    if (navHomeBtn) navHomeBtn.addEventListener("click", resetChat);
+
+    // Header Back button handler (closes active sidebar drawer, modals, maximized charts, or smoothly scrolls to top)
     if (navBackBtn) {
         navBackBtn.addEventListener("click", () => {
+            if (appSidebar && appSidebar.classList.contains("sidebar-open")) {
+                closeSidebarDrawer();
+                return;
+            }
             if (companiesModal && companiesModal.style.display !== "none") {
                 companiesModal.style.display = "none";
                 return;
@@ -1472,6 +1508,8 @@ function setupLibraryHandlers() {
     if (!libraryBtn || !libraryModal) return;
 
     libraryBtn.addEventListener("click", () => {
+        if (appSidebar) appSidebar.classList.remove("sidebar-open");
+        if (sidebarBackdrop) sidebarBackdrop.classList.remove("active");
         renderLibraryList();
         libraryModal.style.display = "flex";
         if (librarySearchInput) librarySearchInput.value = "";
